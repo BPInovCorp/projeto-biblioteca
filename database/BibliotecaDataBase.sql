@@ -1,0 +1,42 @@
+USE biblioteca;
+
+ALTER TABLE users ADD COLUMN role VARCHAR(20) NOT NULL DEFAULT 'user' AFTER email;
+
+CREATE TABLE IF NOT EXISTS editoras (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    logotipo VARCHAR(255) NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS autores (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    nome TEXT NOT NULL,
+    foto VARCHAR(255) NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL
+);
+
+CREATE TABLE IF NOT EXISTS livros (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    editora_id BIGINT UNSIGNED NOT NULL,
+    isbn TEXT NOT NULL,
+    nome TEXT NOT NULL,
+    bibliografia LONGTEXT NULL,
+    imagem_capa VARCHAR(255) NULL,
+    preco DECIMAL(8, 2) NOT NULL DEFAULT 0.00,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    CONSTRAINT fk_livros_editora FOREIGN KEY (editora_id) REFERENCES editoras(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS autor_livro (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    livro_id BIGINT UNSIGNED NOT NULL,
+    autor_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP NULL,
+    updated_at TIMESTAMP NULL,
+    CONSTRAINT fk_autor_livro_livro FOREIGN KEY (livro_id) REFERENCES livros(id) ON DELETE CASCADE,
+    CONSTRAINT fk_autor_livro_autor FOREIGN KEY (autor_id) REFERENCES autores(id) ON DELETE CASCADE
+);
