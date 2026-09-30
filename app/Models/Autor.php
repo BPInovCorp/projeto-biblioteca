@@ -19,6 +19,7 @@ class Autor extends Model
 
     protected $casts = [
         'nome' => 'encrypted',
+        'foto' => 'encrypted',
     ];
 
     public function livros(): BelongsToMany

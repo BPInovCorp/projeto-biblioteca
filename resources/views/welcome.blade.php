@@ -17,8 +17,13 @@
             <div class="navbar-end gap-3">
                 @if (Route::has('login'))
                     @auth
-                        <a href="{{ url('/dashboard') }}" class="btn btn-primary btn-sm">
-                            Dashboard
+                        @if(auth()->user()->isAdmin())
+                            <a href="{{ url('/dashboard') }}" class="btn btn-ghost btn-sm">
+                                Painel de Controlo
+                            </a>
+                        @endif
+                        <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
+                            O meu Perfil
                         </a>
                     @else
                         <a href="{{ route('login') }}" class="btn btn-ghost btn-sm">
@@ -74,16 +79,16 @@
                         </div>
                     </details>
 
-                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ request('excluir_autores') ? 'open' : '' }}>
+                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ request('autores') ? 'open' : '' }}>
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>✍️</span> Autores (Filtrar / Excluir)
+                            <span>✍️</span> Autores
                         </summary>
                         <div class="collapse-content flex flex-col gap-2 pt-2">
-                            <p class="text-xs opacity-75 mb-2">Selecione os autores que pretende excluir da estante:</p>
+                            <p class="text-xs opacity-75 mb-2">Selecione os autores que pretende ver da estante:</p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
                                 @foreach($autores as $autor)
                                     <label class="label cursor-pointer justify-start gap-3 p-1">
-                                        <input type="checkbox" name="excluir_autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('excluir_autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                        <input type="checkbox" name="autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
                                         <span class="label-text text-xs">{{ $autor->nome }}</span>
                                     </label>
                                 @endforeach
@@ -91,16 +96,16 @@
                         </div>
                     </details>
 
-                    <details class="collapse collapse-arrow join-item" {{ request('excluir_editoras') ? 'open' : '' }}>
+                    <details class="collapse collapse-arrow join-item" {{ request('editoras') ? 'open' : '' }}>
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>🏢</span> Editoras (Filtrar / Excluir)
+                            <span>🏢</span> Editoras
                         </summary>
                         <div class="collapse-content flex flex-col gap-2 pt-2">
-                            <p class="text-xs opacity-75 mb-2">Selecione as editoras que pretende excluir da estante:</p>
+                            <p class="text-xs opacity-75 mb-2">Selecione as editoras que pretende ver da estante:</p>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
                                 @foreach($editoras as $editora)
                                     <label class="label cursor-pointer justify-start gap-3 p-1">
-                                        <input type="checkbox" name="excluir_editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('excluir_editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                        <input type="checkbox" name="editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
                                         <span class="label-text text-xs">{{ $editora->nome }}</span>
                                     </label>
                                 @endforeach
@@ -120,11 +125,11 @@
                     @if(request('ordenar'))
                         <input type="hidden" name="ordenar" value="{{ request('ordenar') }}">
                     @endif
-                    @foreach((array) request('excluir_autores', []) as $id)
-                        <input type="hidden" name="excluir_autores[]" value="{{ $id }}">
+                    @foreach((array) request('autores', []) as $id)
+                        <input type="hidden" name="autores[]" value="{{ $id }}">
                     @endforeach
-                    @foreach((array) request('excluir_editoras', []) as $id)
-                        <input type="hidden" name="excluir_editoras[]" value="{{ $id }}">
+                    @foreach((array) request('editoras', []) as $id)
+                        <input type="hidden" name="editoras[]" value="{{ $id }}">
                     @endforeach
 
                     <input type="text" name="search" value="{{ request('search') }}" placeholder="Pesquisar por título, autor, editora ou ISBN..." class="input input-bordered w-full bg-base-100 text-base-content text-sm shadow-md" />
@@ -274,7 +279,7 @@
 
         <footer class="footer footer-center p-6 bg-base-200 text-base-content border-t border-base-300 mt-12">
             <div>
-                <p class="text-sm font-medium">Projeto Biblioteca © 2026 - Inovcorp</p>
+                <p class="text-sm font-medium">Projeto Biblioteca 2026 - Inovcorp - Desenvolvido por Bruno Pinto</p>
             </div>
         </footer>
 

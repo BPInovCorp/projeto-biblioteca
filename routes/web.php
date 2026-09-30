@@ -1,5 +1,8 @@
 <?php
 
+use App\Http\Controllers\AutorController;
+use App\Http\Controllers\EditoraController;
+use App\Http\Controllers\LivroController;
 use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
@@ -9,16 +12,16 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', function (Request $request) {
     $query = Livro::with(['editora', 'autores']);
 
-    $excluirAutores = $request->input('excluir_autores', []);
-    if (!empty($excluirAutores)) {
-        $query->whereDoesntHave('autores', function ($q) use ($excluirAutores) {
-            $q->whereIn('autores.id', $excluirAutores);
+    $autoresSelecionados = $request->input('autores', []);
+    if (!empty($autoresSelecionados)) {
+        $query->whereHas('autores', function ($q) use ($autoresSelecionados) {
+            $q->whereIn('autores.id', $autoresSelecionados);
         });
     }
 
-    $excluirEditoras = $request->input('excluir_editoras', []);
-    if (!empty($excluirEditoras)) {
-        $query->whereNotIn('editora_id', $excluirEditoras);
+    $editorasSelecionadas = $request->input('editoras', []);
+    if (!empty($editorasSelecionadas)) {
+        $query->whereIn('editora_id', $editorasSelecionadas);
     }
 
     $livros = $query->get();
@@ -53,9 +56,19 @@ Route::get('/', function (Request $request) {
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
-    'verified',
 ])->group(function () {
     Route::get('/dashboard', function () {
+        if (!request()->user()?->isAdmin()) {
+            return redirect()->route('profile.show');
+        }
+
         return view('dashboard');
     })->name('dashboard');
+
+    Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
+        Route::resource('editoras', EditoraController::class)->except(['show']);
+        Route::resource('autores', AutorController::class)->parameters(['autores' => 'autor'])->except(['show']);
+        Route::get('livros/exportar', [LivroController::class, 'export'])->name('livros.export');
+        Route::resource('livros', LivroController::class)->except(['show']);
+    });
 });

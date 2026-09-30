@@ -3,23 +3,30 @@
 namespace Database\Seeders;
 
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use Database\Seeders\BibliotecaSeeder;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        // User::factory(10)->create();
+        $adminEmail = env('ADMIN_EMAIL');
+        $adminPassword = env('ADMIN_PASSWORD');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
-        ]);
+        if (!$adminEmail || !$adminPassword) {
+            throw new RuntimeException('As credenciais do administrador nao estao definidas no .env');
+        }
+
+        User::updateOrCreate(
+            ['email' => $adminEmail],
+            [
+                'name' => env('ADMIN_NAME', 'Bruno Pinto'),
+                'password' => $adminPassword,
+                'role' => 'admin',
+            ]
+        );
+
+        $this->call(BibliotecaSeeder::class);
     }
 }

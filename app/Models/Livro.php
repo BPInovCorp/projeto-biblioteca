@@ -26,7 +26,8 @@ class Livro extends Model
         'isbn' => 'encrypted',
         'nome' => 'encrypted',
         'bibliografia' => 'encrypted',
-        'preco' => 'decimal:2',
+        'imagem_capa' => 'encrypted',
+        'preco' => 'encrypted',
     ];
 
     public function editora(): BelongsTo

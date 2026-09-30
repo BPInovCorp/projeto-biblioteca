@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS livros (
     nome TEXT NOT NULL,
     bibliografia LONGTEXT NULL,
     imagem_capa VARCHAR(255) NULL,
-    preco DECIMAL(8, 2) NOT NULL DEFAULT 0.00,
+    preco TEXT NOT NULL,
     created_at TIMESTAMP NULL,
     updated_at TIMESTAMP NULL,
     CONSTRAINT fk_livros_editora FOREIGN KEY (editora_id) REFERENCES editoras(id) ON DELETE CASCADE

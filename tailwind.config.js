@@ -3,7 +3,10 @@ import forms from '@tailwindcss/forms';
 import typography from '@tailwindcss/typography';
 import daisyui from 'daisyui';
 
+/** @type {import('tailwindcss').Config} */
 export default {
+    darkMode: 'class',
+
     content: [
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './vendor/laravel/jetstream/**/*.blade.php',
@@ -22,6 +25,6 @@ export default {
     plugins: [forms, typography, daisyui],
 
     daisyui: {
-        themes: ["autumn", "dark", "light"],
+        themes: ["cupcake", "autumn", "dark", "light"],
     },
 };

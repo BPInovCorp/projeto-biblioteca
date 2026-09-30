@@ -19,6 +19,7 @@ class Editora extends Model
 
     protected $casts = [
         'nome' => 'encrypted',
+        'logotipo' => 'encrypted',
     ];
 
     public function livros(): HasMany
