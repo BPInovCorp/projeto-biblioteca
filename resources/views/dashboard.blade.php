@@ -1,23 +1,13 @@
 <x-app-layout>
     <div data-theme="autumn" class="min-h-screen bg-base-200 text-base-content py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8">
-            <div class="card bg-base-100 shadow-xl border border-base-300 p-6 sm:p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950">
-                        Olá, {{ auth()->user()->name }}! 👋
-                    </h1>
-                    <p class="text-sm opacity-80 mt-1">
-                        Bem-vindo ao painel de controlo da Biblioteca.
-                    </p>
-                </div>
-                <div class="flex items-center gap-3">
-                    <a href="{{ url('/') }}" class="btn btn-outline btn-sm">
-                        📚 Ver Estante
-                    </a>
-                    <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
-                        ⚙️ O Meu Perfil & 2FA
-                    </a>
-                </div>
+            <div class="card bg-base-100 shadow-xl border border-base-300 p-6 sm:p-8">
+                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950">
+                    Olá, {{ auth()->user()->name }}! 👋
+                </h1>
+                <p class="text-sm opacity-80 mt-1">
+                    Bem-vindo ao painel de controlo da Biblioteca.
+                </p>
             </div>
 
             <div class="stats stats-vertical lg:stats-horizontal shadow-xl bg-base-100 border border-base-300 w-full">

@@ -61,12 +61,8 @@
                                     </td>
                                     <td class="text-end">
                                         <div class="flex justify-end gap-2">
-                                            <a href="{{ route('editoras.edit', $editora->id)}} " class="btn btn-xs btn-outline">Editar</a>
-                                            <form action="{{ route('editoras.destroy', $editora->id) }}" method="POST" onsubmit="return confirm('Tem a certeza de que pretende eliminar esta editora?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-xs btn-outline btn-error">Eliminar</button>
-                                            </form>
+                                            <a href="{{ route('editoras.edit', $editora->id) }}" class="btn btn-xs btn-outline">Editar</a>
+                                            <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('editoras.destroy', $editora->id) }}" data-nome="a editora {{ $editora->nome }}" onclick="confirmarEliminacao(this)">Eliminar</button>
                                         </div>
                                     </td>
                                 </tr>

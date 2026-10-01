@@ -96,7 +96,7 @@ class LivroController extends Controller
 
         $livro->autores()->attach($validated['autores']);
 
-        return redirect()->route('livros.index');
+        return redirect()->route('livros.index')->with('success', 'livro adicionado com sucesso!');
     }
 
     public function edit(Livro $livro)
@@ -132,7 +132,7 @@ class LivroController extends Controller
 
         $livro->autores()->sync($validated['autores']);
 
-        return redirect()->route('livros.index');
+        return redirect()->route('livros.index')->with('success', 'livro atualizado com sucesso!');
     }
 
     public function destroy(Livro $livro)
@@ -140,7 +140,7 @@ class LivroController extends Controller
         $livro->autores()->detach();
         $livro->delete();
 
-        return redirect()->route('livros.index');
+        return redirect()->route('livros.index')->with('success', 'livro eliminado com sucesso!');
     }
 
     public function export()

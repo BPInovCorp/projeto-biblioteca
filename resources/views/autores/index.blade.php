@@ -62,11 +62,7 @@
                                     <td class="text-end">
                                         <div class="flex justify-end gap-2">
                                             <a href="{{ route('autores.edit', $autor->id) }}" class="btn btn-xs btn-outline">Editar</a>
-                                            <form action="{{ route('autores.destroy', $autor->id) }}" method="POST" onsubmit="return confirm('Tem a certeza de que pretende eliminar este autor?');">
-                                                @csrf
-                                                @method('DELETE')
-                                                <button type="submit" class="btn btn-xs btn-outline btn-error">Eliminar</button>
-                                            </form>
+                                                <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('autores.destroy', $autor->id) }}" data-nome="o autor {{ $autor->nome }}" onclick="confirmarEliminacao(this)">Eliminar</button>
                                         </div>
                                     </td>
                                 </tr>

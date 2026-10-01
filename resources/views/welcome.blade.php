@@ -47,7 +47,7 @@
                 </div>
 
                 <form method="GET" action="{{ url('/') }}" id="acordeao-menus-principais" class="join join-vertical w-full bg-base-200 border border-base-300 rounded-box shadow-md">
-                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ !request('ordenar') && !request('excluir_autores') && !request('excluir_editoras') ? 'open' : '' }}>
+                    <details class="collapse collapse-arrow join-item border-b border-base-300">
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
                             <span>📖</span> Livros (Ordenação)
                         </summary>
