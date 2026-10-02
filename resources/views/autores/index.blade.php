@@ -38,31 +38,34 @@
                                         ID @if($sort === 'id') <span>{{ $direction === 'asc' ? '▲' : '▼' }}</span> @endif
                                     </a>
                                 </th>
+                                <th>Foto</th>
                                 <th>
                                     <a href="{{ route('autores.index', ['sort' => 'nome', 'direction' => $sort === 'nome' && $direction === 'asc' ? 'desc' : 'asc', 'search' => $search]) }}" class="flex items-center gap-1 hover:text-primary">
                                         Nome @if($sort === 'nome') <span>{{ $direction === 'asc' ? '▲' : '▼' }}</span> @endif
                                     </a>
                                 </th>
-                                <th>Foto</th>
                                 <th class="text-end">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($autoresPaginados as $autor)
+                                @php
+                                    $fotoSrc = $autor->foto ? (Illuminate\Support\Str::startsWith($autor->foto, ['http://', 'https://']) ? $autor->foto : asset($autor->foto)) : '';
+                                @endphp
                                 <tr>
                                     <th class="font-mono">{{ $autor->id }}</th>
-                                    <td class="font-semibold">{{ $autor->nome }}</td>
                                     <td>
-                                        @if($autor->foto)
-                                            <span class="text-xs font-mono opacity-70 truncate max-w-xs block">{{ $autor->foto }}</span>
+                                        @if($fotoSrc)
+                                            <img src="{{ $fotoSrc }}" alt="{{ $autor->nome }}" class="w-10 h-10 object-cover rounded-full shadow-md border border-base-300">
                                         @else
-                                            <span class="text-xs opacity-50">Sem foto</span>
+                                            <span class="text-[10px] opacity-40 font-mono">Sem foto</span>
                                         @endif
                                     </td>
+                                    <td class="font-semibold">{{ $autor->nome }}</td>
                                     <td class="text-end">
                                         <div class="flex justify-end gap-2">
                                             <a href="{{ route('autores.edit', $autor->id) }}" class="btn btn-xs btn-outline">Editar</a>
-                                                <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('autores.destroy', $autor->id) }}" data-nome="o autor {{ $autor->nome }}" onclick="confirmarEliminacao(this)">Eliminar</button>
+                                            <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('autores.destroy', $autor->id) }}" data-nome="o autor {{ $autor->nome }}" onclick="confirmarEliminacao(this)">Eliminar</button>
                                         </div>
                                     </td>
                                 </tr>

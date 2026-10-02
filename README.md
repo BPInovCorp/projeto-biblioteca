@@ -11,6 +11,14 @@ Sistema de Gestão de Biblioteca desenvolvido em **Laravel**, com autenticação
 - **Exportação Excel:** Capacidade de exportar os dados da base de dados de Livros diretamente para ficheiro `.xlsx`.
 - **Segurança & Cifragem:** Todos os dados sensíveis e textuais (nomes, ISBNs, bibliografias, preços, fotos e logótipos) encontram-se 100% cifrados na base de dados através de Eloquent Casts (`encrypted`).
 
+
+## Arquitetura de Segurança, Cifragem e APP_KEY
+
+- **Cifragem de Dados Sensíveis:** Todos os dados do catálogo, incluindo nomes de livros, autores, editoras, ISBNs, bibliografias, preços, fotografias e logótipos, são armazenados de forma cifrada na base de dados MySQL. Esta implementação é realizada através dos *Eloquent Casts* do Laravel, utilizando o cast `encrypted` nos campos definidos.
+- **Proteção da `APP_KEY`:** A `APP_KEY`, armazenada no ficheiro `.env`, constitui a chave criptográfica utilizada pelo Laravel para a cifragem e decifragem dos dados. A sua alteração ou regeneração após a existência de dados cifrados invalida a capacidade de os decifrar, podendo resultar no erro `The MAC is invalid`. Por este motivo, o ficheiro `.env` encontra-se excluído do controlo de versões através do `.gitignore`, evitando a exposição da chave criptográfica.
+- **Processamento de Pesquisa e Ordenação em Memória:** Como os dados são armazenados na base de dados sob a forma de *ciphertext*, o MySQL não consegue aplicar diretamente operações como `LIKE` ou `ORDER BY` sobre os valores originais. Para ultrapassar esta limitação, a aplicação recupera e decifra os registos necessários, realizando posteriormente as operações de pesquisa, filtragem e ordenação em memória através das Coleções do Laravel. A paginação dos resultados é assegurada através da classe `LengthAwarePaginator`.
+
+
 ## Requisitos do Sistema
 - PHP 8.3 ou superior
 - Composer

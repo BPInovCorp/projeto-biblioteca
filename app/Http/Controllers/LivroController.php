@@ -17,6 +17,8 @@ class LivroController extends Controller
         $search = $request->input('search');
         $editoraFiltro = $request->input('editora_id');
         $autorFiltro = $request->input('autor_id');
+        $precoMin = $request->input('preco_min');
+        $precoMax = $request->input('preco_max');
 
         $livros = Livro::with(['editora', 'autores'])->get();
 
@@ -24,6 +26,7 @@ class LivroController extends Controller
             $livros = $livros->filter(function ($livro) use ($search) {
                 return stripos($livro->nome, $search) !== false 
                     || stripos($livro->isbn, $search) !== false
+                    || stripos($livro->bibliografia ?? '', $search) !== false
                     || stripos($livro->editora->nome ?? '', $search) !== false
                     || $livro->autores->contains(fn($a) => stripos($a->nome, $search) !== false);
             });
@@ -39,12 +42,35 @@ class LivroController extends Controller
             });
         }
 
-        $sort = $request->input('sort', 'id');
-        $direction = $request->input('direction', 'asc');
+        if ($precoMin !== null && $precoMin !== '') {
+            $livros = $livros->filter(fn($l) => (float)$l->preco >= (float)$precoMin);
+        }
 
-        $livros = $direction === 'asc'
-            ? $livros->sortBy($sort)
-            : $livros->sortByDesc($sort);
+        if ($precoMax !== null && $precoMax !== '') {
+            $livros = $livros->filter(fn($l) => (float)$l->preco <= (float)$precoMax);
+        }
+
+        $allowedsorts = ['id', 'isbn', 'nome', 'editora', 'autor', 'preco'];
+        $sort = in_array($request->input('sort'), $allowedsorts, true) ? $request->input('sort') : 'id';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
+
+        if ($sort === 'editora') {
+            $livros = $direction === 'asc'
+                ? $livros->sortBy(fn($l) => $l->editora->nome ?? '')
+                : $livros->sortByDesc(fn($l) => $l->editora->nome ?? '');
+        } elseif ($sort === 'autor') {
+            $livros = $direction === 'asc'
+                ? $livros->sortBy(fn($l) => $l->autores->pluck('nome')->implode(', '))
+                : $livros->sortByDesc(fn($l) => $l->autores->pluck('nome')->implode(', '));
+        } elseif ($sort === 'preco') {
+            $livros = $direction === 'asc'
+                ? $livros->sortBy(fn($l) => (float)$l->preco)
+                : $livros->sortByDesc(fn($l) => (float)$l->preco);
+        } else {
+            $livros = $direction === 'asc'
+                ? $livros->sortBy($sort)
+                : $livros->sortByDesc($sort);
+        }
 
         $perPage = 24;
         $currentPage = LengthAwarePaginator::resolveCurrentPage();
@@ -61,7 +87,7 @@ class LivroController extends Controller
         $editoras = Editora::all();
         $autores = Autor::all();
 
-        return view('livros.index', compact('livrosPaginados', 'editoras', 'autores', 'search', 'editoraFiltro', 'autorFiltro', 'sort', 'direction'));
+        return view('livros.index', compact('livrosPaginados', 'editoras', 'autores', 'search', 'editoraFiltro', 'autorFiltro', 'precoMin', 'precoMax', 'sort', 'direction'));
     }
 
     public function create()
@@ -96,7 +122,7 @@ class LivroController extends Controller
 
         $livro->autores()->attach($validated['autores']);
 
-        return redirect()->route('livros.index')->with('success', 'livro adicionado com sucesso!');
+        return redirect()->route('livros.index')->with('success', 'Livro adicionado com sucesso!');
     }
 
     public function edit(Livro $livro)
@@ -132,7 +158,7 @@ class LivroController extends Controller
 
         $livro->autores()->sync($validated['autores']);
 
-        return redirect()->route('livros.index')->with('success', 'livro atualizado com sucesso!');
+        return redirect()->route('livros.index')->with('success', 'Livro atualizado com sucesso!');
     }
 
     public function destroy(Livro $livro)
@@ -140,7 +166,7 @@ class LivroController extends Controller
         $livro->autores()->detach();
         $livro->delete();
 
-        return redirect()->route('livros.index')->with('success', 'livro eliminado com sucesso!');
+        return redirect()->route('livros.index')->with('success', 'Livro eliminado com sucesso!');
     }
 
     public function export()

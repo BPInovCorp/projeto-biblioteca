@@ -19,8 +19,9 @@ class AutorController extends Controller
             });
         }
 
-        $sort = $request->input('sort', 'id');
-        $direction = $request->input('direction', 'asc');
+        $allowedSorts = ['id', 'nome'];
+        $sort = in_array($request->input('sort'), $allowedSorts, true) ? $request->input('sort') : 'id';
+        $direction = $request->input('direction') === 'desc' ? 'desc' : 'asc';
 
         $autores = $direction === 'asc'
             ? $autores->sortBy($sort)

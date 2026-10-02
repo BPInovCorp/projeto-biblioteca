@@ -7,6 +7,7 @@ use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (Request $request) {
@@ -26,6 +27,15 @@ Route::get('/', function (Request $request) {
 
     $livros = $query->get();
 
+    $precoMin = $request->input('preco_min');
+    $precoMax = $request->input('preco_max');
+    if ($precoMin !== null && $precoMin !== '') {
+        $livros = $livros->filter(fn($l) => (float)$l->preco >= (float)$precoMin);
+    }
+    if ($precoMax !== null && $precoMax !== '') {
+        $livros = $livros->filter(fn($l) => (float)$l->preco <= (float)$precoMax);
+    }
+
     $pesquisa = $request->input('search');
     if ($pesquisa) {
         $livros = $livros->filter(function ($livro) use ($pesquisa) {
@@ -36,21 +46,41 @@ Route::get('/', function (Request $request) {
         });
     }
 
-    $ordenar = $request->input('ordenar', 'nome_asc');
-    if ($ordenar === 'nome_asc') {
+    $ordenar = $request->input('ordenar', 'livro_nome_asc');
+    if ($ordenar === 'livro_nome_asc' || $ordenar === 'nome_asc') {
         $livros = $livros->sortBy('nome');
-    } elseif ($ordenar === 'nome_desc') {
+    } elseif ($ordenar === 'livro_nome_desc' || $ordenar === 'nome_desc') {
         $livros = $livros->sortByDesc('nome');
-    } elseif ($ordenar === 'isbn_asc') {
+    } elseif ($ordenar === 'livro_isbn_asc' || $ordenar === 'isbn_asc') {
         $livros = $livros->sortBy('isbn');
-    } elseif ($ordenar === 'isbn_desc') {
+    } elseif ($ordenar === 'livro_isbn_desc' || $ordenar === 'isbn_desc') {
         $livros = $livros->sortByDesc('isbn');
+    } elseif ($ordenar === 'autor_nome_asc') {
+        $livros = $livros->sortBy(fn($l) => $l->autores->pluck('nome')->implode(', '));
+    } elseif ($ordenar === 'autor_nome_desc') {
+        $livros = $livros->sortByDesc(fn($l) => $l->autores->pluck('nome')->implode(', '));
+    } elseif ($ordenar === 'editora_nome_asc') {
+        $livros = $livros->sortBy(fn($l) => $l->editora->nome ?? '');
+    } elseif ($ordenar === 'editora_nome_desc') {
+        $livros = $livros->sortByDesc(fn($l) => $l->editora->nome ?? '');
     }
 
-    $autores = Autor::all();
-    $editoras = Editora::all();
+    $perPage = 24;
+    $currentPage = LengthAwarePaginator::resolveCurrentPage();
+    $currentItems = $livros->slice(($currentPage - 1) * $perPage, $perPage)->values();
 
-    return view('welcome', compact('livros', 'autores', 'editoras'));
+    $livrosPaginados = new LengthAwarePaginator(
+        $currentItems,
+        $livros->count(),
+        $perPage,
+        $currentPage,
+        ['path' => $request->url(), 'query' => $request->query()]
+    );
+
+    $autores = Autor::all()->sortBy('nome');
+    $editoras = Editora::all()->sortBy('nome');
+
+    return view('welcome', compact('livrosPaginados', 'autores', 'editoras'));
 });
 
 Route::middleware([

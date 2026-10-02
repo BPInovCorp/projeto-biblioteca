@@ -49,66 +49,105 @@
                 <form method="GET" action="{{ url('/') }}" id="acordeao-menus-principais" class="join join-vertical w-full bg-base-200 border border-base-300 rounded-box shadow-md">
                     <details class="collapse collapse-arrow join-item border-b border-base-300">
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>📖</span> Livros (Ordenação)
+                            <span>📖</span> Livros (Ordenação e Preço)
                         </summary>
                         <div class="collapse-content flex flex-col gap-3 pt-2">
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-3">
-                                    <input type="radio" name="ordenar" value="nome_asc" {{ request('ordenar', 'nome_asc') === 'nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                    <span class="label-text text-sm">Ordenar por Nome (A a Z)</span>
-                                </label>
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-3">
+                                        <input type="radio" name="ordenar" value="livro_nome_asc" {{ in_array(request('ordenar', 'livro_nome_asc'), ['livro_nome_asc', 'nome_asc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
+                                        <span class="label-text text-sm">Nome do Livro (A a Z)</span>
+                                    </label>
+                                </div>
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-3">
+                                        <input type="radio" name="ordenar" value="livro_nome_desc" {{ in_array(request('ordenar'), ['livro_nome_desc', 'nome_desc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
+                                        <span class="label-text text-sm">Nome do Livro (Z a A)</span>
+                                    </label>
+                                </div>
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-3">
+                                        <input type="radio" name="ordenar" value="livro_isbn_asc" {{ in_array(request('ordenar'), ['livro_isbn_asc', 'isbn_asc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
+                                        <span class="label-text text-sm">ISBN (Crescente)</span>
+                                    </label>
+                                </div>
+                                <div class="form-control">
+                                    <label class="label cursor-pointer justify-start gap-3">
+                                        <input type="radio" name="ordenar" value="livro_isbn_desc" {{ in_array(request('ordenar'), ['livro_isbn_desc', 'isbn_desc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
+                                        <span class="label-text text-sm">ISBN (Decrescente)</span>
+                                    </label>
+                                </div>
                             </div>
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-3">
-                                    <input type="radio" name="ordenar" value="nome_desc" {{ request('ordenar') === 'nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                    <span class="label-text text-sm">Ordenar por Nome (Z a A)</span>
-                                </label>
-                            </div>
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-3">
-                                    <input type="radio" name="ordenar" value="isbn_asc" {{ request('ordenar') === 'isbn_asc' ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                    <span class="label-text text-sm">Ordenar por ISBN (Crescente)</span>
-                                </label>
-                            </div>
-                            <div class="form-control">
-                                <label class="label cursor-pointer justify-start gap-3">
-                                    <input type="radio" name="ordenar" value="isbn_desc" {{ request('ordenar') === 'isbn_desc' ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                    <span class="label-text text-sm">Ordenar por ISBN (Decrescente)</span>
-                                </label>
+
+                            <div class="pt-2 border-t border-base-300">
+                                <label class="label p-0 mb-1"><span class="label-text text-xs font-bold uppercase tracking-wider text-amber-950">Filtrar por Faixa de Preço (€)</span></label>
+                                <div class="flex gap-2 items-center">
+                                    <input type="number" step="0.01" name="preco_min" value="{{ request('preco_min') }}" placeholder="Preço Mínimo" class="input input-bordered input-sm w-1/2 bg-base-100 text-base-content text-xs" />
+                                    <span class="text-xs font-bold opacity-50">-</span>
+                                    <input type="number" step="0.01" name="preco_max" value="{{ request('preco_max') }}" placeholder="Preço Máximo" class="input input-bordered input-sm w-1/2 bg-base-100 text-base-content text-xs" />
+                                </div>
                             </div>
                         </div>
                     </details>
 
-                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ request('autores') ? 'open' : '' }}>
+                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ request('autores') || in_array(request('ordenar'), ['autor_nome_asc', 'autor_nome_desc']) ? 'open' : '' }}>
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>✍️</span> Autores
+                            <span>✍️</span> Autores (Ordenação e Seleção)
                         </summary>
-                        <div class="collapse-content flex flex-col gap-2 pt-2">
-                            <p class="text-xs opacity-75 mb-2">Selecione os autores que pretende ver da estante:</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
-                                @foreach($autores as $autor)
-                                    <label class="label cursor-pointer justify-start gap-3 p-1">
-                                        <input type="checkbox" name="autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
-                                        <span class="label-text text-xs">{{ $autor->nome }}</span>
-                                    </label>
-                                @endforeach
+                        <div class="collapse-content flex flex-col gap-3 pt-2">
+                            <div class="flex gap-4 items-center">
+                                <span class="text-xs font-bold uppercase tracking-wider text-amber-950">Ordenar Estante:</span>
+                                <label class="label cursor-pointer gap-2 p-0">
+                                    <input type="radio" name="ordenar" value="autor_nome_asc" {{ request('ordenar') === 'autor_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                    <span class="label-text text-xs">Autor (A a Z)</span>
+                                </label>
+                                <label class="label cursor-pointer gap-2 p-0">
+                                    <input type="radio" name="ordenar" value="autor_nome_desc" {{ request('ordenar') === 'autor_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                    <span class="label-text text-xs">Autor (Z a A)</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <p class="text-xs opacity-75 mb-2">Selecione os autores que pretende ver na estante:</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
+                                    @foreach($autores as $autor)
+                                        <label class="label cursor-pointer justify-start gap-3 p-1">
+                                            <input type="checkbox" name="autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                            <span class="label-text text-xs">{{ $autor->nome }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </details>
 
-                    <details class="collapse collapse-arrow join-item" {{ request('editoras') ? 'open' : '' }}>
+                    <details class="collapse collapse-arrow join-item" {{ request('editoras') || in_array(request('ordenar'), ['editora_nome_asc', 'editora_nome_desc']) ? 'open' : '' }}>
                         <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>🏢</span> Editoras
+                            <span>🏢</span> Editoras (Ordenação e Seleção)
                         </summary>
-                        <div class="collapse-content flex flex-col gap-2 pt-2">
-                            <p class="text-xs opacity-75 mb-2">Selecione as editoras que pretende ver da estante:</p>
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
-                                @foreach($editoras as $editora)
-                                    <label class="label cursor-pointer justify-start gap-3 p-1">
-                                        <input type="checkbox" name="editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
-                                        <span class="label-text text-xs">{{ $editora->nome }}</span>
-                                    </label>
-                                @endforeach
+                        <div class="collapse-content flex flex-col gap-3 pt-2">
+                            <div class="flex gap-4 items-center">
+                                <span class="text-xs font-bold uppercase tracking-wider text-amber-950">Ordenar Estante:</span>
+                                <label class="label cursor-pointer gap-2 p-0">
+                                    <input type="radio" name="ordenar" value="editora_nome_asc" {{ request('ordenar') === 'editora_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                    <span class="label-text text-xs">Editora (A a Z)</span>
+                                </label>
+                                <label class="label cursor-pointer gap-2 p-0">
+                                    <input type="radio" name="ordenar" value="editora_nome_desc" {{ request('ordenar') === 'editora_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                    <span class="label-text text-xs">Editora (Z a A)</span>
+                                </label>
+                            </div>
+
+                            <div>
+                                <p class="text-xs opacity-75 mb-2">Selecione as editoras que pretende ver na estante:</p>
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
+                                    @foreach($editoras as $editora)
+                                        <label class="label cursor-pointer justify-start gap-3 p-1">
+                                            <input type="checkbox" name="editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                            <span class="label-text text-xs">{{ $editora->nome }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
                             </div>
                         </div>
                     </details>
@@ -124,6 +163,12 @@
                 <form method="GET" action="{{ url('/') }}" class="flex flex-col sm:flex-row gap-2 items-center">
                     @if(request('ordenar'))
                         <input type="hidden" name="ordenar" value="{{ request('ordenar') }}">
+                    @endif
+                    @if(request('preco_min'))
+                        <input type="hidden" name="preco_min" value="{{ request('preco_min') }}">
+                    @endif
+                    @if(request('preco_max'))
+                        <input type="hidden" name="preco_max" value="{{ request('preco_max') }}">
                     @endif
                     @foreach((array) request('autores', []) as $id)
                         <input type="hidden" name="autores[]" value="{{ $id }}">
@@ -166,7 +211,7 @@
                 </div>
 
                 <div id="armario-biblioteca" class="relative bg-amber-950/20 border-8 border-amber-950 rounded-2xl p-6 sm:p-8 lg:p-10 shadow-2xl flex flex-col gap-10">
-                    @forelse($livros->chunk(6) as $andar)
+                    @forelse($livrosPaginados->chunk(6) as $andar)
                         <div class="prateleira-nivel flex flex-col">
                             <div class="flex flex-row items-end justify-center gap-2 sm:gap-3 md:gap-3.5 min-h-[440px] px-2 sm:px-4">
                                 @foreach($andar as $livro)
@@ -181,7 +226,7 @@
                                          data-autor="{{ $livro->autores->pluck('nome')->implode(', ') }}"
                                          data-editora="{{ $livro->editora->nome ?? '' }}"
                                          data-isbn="{{ $livro->isbn }}"
-                                         data-preco="{{ number_format($livro->preco, 2, ',', '.') }} €"
+                                         data-preco="{{ number_format((float)$livro->preco, 2, ',', '.') }} €"
                                          data-bibliografia="{{ $livro->bibliografia }}"
                                          data-capa="{{ $capaUrl }}"
                                          data-autor-foto="{{ $autorFotoUrl }}"
@@ -225,6 +270,10 @@
                             <span>Nenhum livro registado no armário da biblioteca.</span>
                         </div>
                     @endforelse
+                </div>
+
+                <div class="mt-8 flex justify-center">
+                    {{ $livrosPaginados->links() }}
                 </div>
             </section>
         </main>
@@ -271,49 +320,48 @@
                         </div>
                     </div>
                 </div>
-            </div>
-            <form method="dialog" class="modal-backdrop">
-                <button>Fechar</button>
-            </form>
-        </dialog>
+                <form method="dialog" class="modal-backdrop">
+                    <button>Fechar</button>
+                </form>
+            </dialog>
 
-        <footer class="footer footer-center p-6 bg-base-200 text-base-content border-t border-base-300 mt-12">
-            <div>
-                <p class="text-sm font-medium">Projeto Biblioteca 2026 - Inovcorp - Desenvolvido por Bruno Pinto</p>
-            </div>
-        </footer>
+            <footer class="footer footer-center p-6 bg-base-200 text-base-content border-t border-base-300 mt-12">
+                <div>
+                    <p class="text-sm font-medium">Projeto Biblioteca © 2026 - Inovcorp</p>
+                </div>
+            </footer>
 
-        <script>
-            function abrirLivroPorElemento(elemento) {
-                const dados = elemento.dataset;
-                document.getElementById('modal-livro-titulo').textContent = dados.titulo;
-                document.getElementById('modal-livro-autor').textContent = dados.autor;
-                document.getElementById('modal-livro-editora').textContent = dados.editora;
-                document.getElementById('modal-livro-isbn').textContent = dados.isbn;
-                document.getElementById('modal-livro-preco').textContent = dados.preco;
-                document.getElementById('modal-livro-bibliografia').textContent = dados.bibliografia;
-                document.getElementById('modal-livro-capa').src = dados.capa;
+            <script>
+                function abrirLivroPorElemento(elemento) {
+                    const dados = elemento.dataset;
+                    document.getElementById('modal-livro-titulo').textContent = dados.titulo;
+                    document.getElementById('modal-livro-autor').textContent = dados.autor;
+                    document.getElementById('modal-livro-editora').textContent = dados.editora;
+                    document.getElementById('modal-livro-isbn').textContent = dados.isbn;
+                    document.getElementById('modal-livro-preco').textContent = dados.preco;
+                    document.getElementById('modal-livro-bibliografia').textContent = dados.bibliografia;
+                    document.getElementById('modal-livro-capa').src = dados.capa;
 
-                const imgAutor = document.getElementById('modal-autor-foto');
-                if (dados.autorFoto) {
-                    imgAutor.src = dados.autorFoto;
-                    imgAutor.classList.remove('hidden');
-                } else {
-                    imgAutor.src = '';
-                    imgAutor.classList.add('hidden');
+                    const imgAutor = document.getElementById('modal-autor-foto');
+                    if (dados.autorFoto) {
+                        imgAutor.src = dados.autorFoto;
+                        imgAutor.classList.remove('hidden');
+                    } else {
+                        imgAutor.src = '';
+                        imgAutor.classList.add('hidden');
+                    }
+
+                    const imgEditora = document.getElementById('modal-editora-logotipo');
+                    if (dados.editoraLogotipo) {
+                        imgEditora.src = dados.editoraLogotipo;
+                        imgEditora.classList.remove('hidden');
+                    } else {
+                        imgEditora.src = '';
+                        imgEditora.classList.add('hidden');
+                    }
+
+                    document.getElementById('modal-detalhes-livro').showModal();
                 }
-
-                const imgEditora = document.getElementById('modal-editora-logotipo');
-                if (dados.editoraLogotipo) {
-                    imgEditora.src = dados.editoraLogotipo;
-                    imgEditora.classList.remove('hidden');
-                } else {
-                    imgEditora.src = '';
-                    imgEditora.classList.add('hidden');
-                }
-
-                document.getElementById('modal-detalhes-livro').showModal();
-            }
-        </script>
-    </body>
-</html>
+            </script>
+        </body>
+    </html>

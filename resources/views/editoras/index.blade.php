@@ -38,27 +38,32 @@
                                         ID @if($sort === 'id') <span>{{ $direction === 'asc' ? '▲' : '▼' }}</span> @endif
                                     </a>
                                 </th>
+                                <th>Logótipo</th>
                                 <th>
                                     <a href="{{ route('editoras.index', ['sort' => 'nome', 'direction' => $sort === 'nome' && $direction === 'asc' ? 'desc' : 'asc', 'search' => $search]) }}" class="flex items-center gap-1 hover:text-primary">
                                         Nome @if($sort === 'nome') <span>{{ $direction === 'asc' ? '▲' : '▼' }}</span> @endif
                                     </a>
                                 </th>
-                                <th>Logótipo</th>
                                 <th class="text-end">Ações</th>
                             </tr>
                         </thead>
                         <tbody>
                             @forelse($editorasPaginadas as $editora)
+                                @php
+                                    $logoSrc = $editora->logotipo ? (Illuminate\Support\Str::startsWith($editora->logotipo, ['http://', 'https://']) ? $editora->logotipo : asset($editora->logotipo)) : '';
+                                @endphp
                                 <tr>
                                     <th class="font-mono">{{ $editora->id }}</th>
-                                    <td class="font-semibold">{{ $editora->nome }}</td>
                                     <td>
-                                        @if($editora->logotipo)
-                                            <span class="text-xs font-mono opacity-70 truncate max-w-xs block">{{ $editora->logotipo }}</span>
+                                        @if($logoSrc)
+                                            <div class="w-14 h-10 rounded bg-white shadow-md border border-base-300 p-1 flex items-center justify-center">
+                                                <img src="{{ $logoSrc }}" alt="{{ $editora->nome }}" class="w-full h-full object-contain">
+                                            </div>
                                         @else
-                                            <span class="text-xs opacity-50">Sem logótipo</span>
+                                            <span class="text-[10px] opacity-40 font-mono">Sem logótipo</span>
                                         @endif
                                     </td>
+                                    <td class="font-semibold">{{ $editora->nome }}</td>
                                     <td class="text-end">
                                         <div class="flex justify-end gap-2">
                                             <a href="{{ route('editoras.edit', $editora->id) }}" class="btn btn-xs btn-outline">Editar</a>
