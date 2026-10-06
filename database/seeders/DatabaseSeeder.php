@@ -27,6 +27,15 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        User::updateOrCreate(
+            ['email' => 'cidadao@biblioteca.pt'],
+            [
+                'name' => 'Cidadão Exemplo',
+                'password' => 'password',
+                'role' => 'cidadao',
+            ]
+        );
+
         $this->call(BibliotecaSeeder::class);
     }
 }

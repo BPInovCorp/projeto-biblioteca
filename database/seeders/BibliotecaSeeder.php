@@ -13,6 +13,7 @@ class BibliotecaSeeder extends Seeder
     public function run(): void
     {
         DB::statement('SET FOREIGN_KEY_CHECKS=0;');
+        DB::table('requisicoes')->truncate();
         DB::table('autor_livro')->truncate();
         Livro::truncate();
         Autor::truncate();

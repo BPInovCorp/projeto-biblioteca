@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Livro extends Model
 {
@@ -38,5 +39,15 @@ class Livro extends Model
     public function autores(): BelongsToMany
     {
         return $this->belongsToMany(Autor::class, 'autor_livro', 'livro_id', 'autor_id')->withTimestamps();
+    }
+
+    public function requisicoes(): HasMany
+    {
+        return $this->hasMany(Requisicao::class);
+    }
+
+    public function isDisponivel(): bool
+    {
+        return !$this->requisicoes()->where('status', 'ativa')->exists();
     }
 }

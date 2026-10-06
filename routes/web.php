@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\EditoraController;
 use App\Http\Controllers\LivroController;
@@ -100,5 +101,7 @@ Route::middleware([
         Route::resource('autores', AutorController::class)->parameters(['autores' => 'autor'])->except(['show']);
         Route::get('livros/exportar', [LivroController::class, 'export'])->name('livros.export');
         Route::resource('livros', LivroController::class)->except(['show']);
+        Route::get('admin/utilizadores/criar', [AdminUserController::class, 'create'])->name('admin.users.create');
+        Route::post('admin/utilizadores', [AdminUserController::class, 'store'])->name('admin.users.store');
     });
 });

@@ -231,7 +231,20 @@
                                          data-capa="{{ $capaUrl }}"
                                          data-autor-foto="{{ $autorFotoUrl }}"
                                          data-editora-logotipo="{{ $editoraLogoUrl }}"
+                                         data-disponivel="{{ $livro->isDisponivel() ? '1' : '0' }}"
                                          onclick="abrirLivroPorElemento(this)">
+
+                                        <div class="flex justify-center w-full mb-1">
+                                            @if($livro->isDisponivel())
+                                                <span class="badge badge-success text-white text-[8px] font-semibold px-1.5 py-0 h-4 min-h-0 border-0">
+                                                    {{ __('Disponível') }}
+                                                </span>
+                                            @else
+                                                <span class="badge badge-warning text-stone-900 text-[8px] font-semibold px-1.5 py-0 h-4 min-h-0 border-0">
+                                                    {{ __('Requisitado') }}
+                                                </span>
+                                            @endif
+                                        </div>
                                         
                                         <div class="lombada-autor w-full border-t border-b border-amber-400/30 py-1.5">
                                             <span class="block text-center font-sans font-semibold text-[9px] sm:text-[10px] leading-tight uppercase tracking-wider text-amber-200/90 break-normal">
@@ -296,6 +309,10 @@
                                     <span class="font-serif font-bold text-amber-950">Preço:</span>
                                     <span id="modal-livro-preco" class="badge badge-primary font-bold"></span>
                                 </div>
+                                <div class="mt-2 flex items-center justify-between pt-2 border-t border-[#d8caa6]">
+                                    <span class="font-serif font-bold text-amber-950">Estado:</span>
+                                    <span id="modal-livro-disponibilidade" data-texto-disponivel="{{ __('Disponível para Requisição') }}" data-texto-indisponivel="{{ __('Indisponível para Requisição') }}" class="badge font-bold"></span>
+                                </div>
                             </div>
                         </div>
 
@@ -341,6 +358,17 @@
                     document.getElementById('modal-livro-preco').textContent = dados.preco;
                     document.getElementById('modal-livro-bibliografia').textContent = dados.bibliografia;
                     document.getElementById('modal-livro-capa').src = dados.capa;
+
+                    const badgeDisponivel = document.getElementById('modal-livro-disponibilidade');
+                    if (dados.disponivel === '1') {
+                        badgeDisponivel.textContent = badgeDisponivel.dataset.textoDisponivel;
+                        badgeDisponivel.classList.remove('badge-warning', 'text-stone-900');
+                        badgeDisponivel.classList.add('badge-success', 'text-white');
+                    } else {
+                        badgeDisponivel.textContent = badgeDisponivel.dataset.textoIndisponivel;
+                        badgeDisponivel.classList.remove('badge-success', 'text-white');
+                        badgeDisponivel.classList.add('badge-warning', 'text-stone-900');
+                    }
 
                     const imgAutor = document.getElementById('modal-autor-foto');
                     if (dados.autorFoto) {

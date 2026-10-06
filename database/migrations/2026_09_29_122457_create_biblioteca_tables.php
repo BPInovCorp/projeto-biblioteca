@@ -10,7 +10,7 @@ return new class extends Migration
     {
         if (!Schema::hasColumn('users', 'role')) {
             Schema::table('users', function (Blueprint $table) {
-                $table->string('role', 20)->default('user')->after('email');
+                $table->string('role', 20)->default('cidadao')->after('email');
             });
         }
 
@@ -53,10 +53,27 @@ return new class extends Migration
                 $table->timestamps();
             });
         }
+
+        if (!Schema::hasTable('requisicoes')) {
+            Schema::create('requisicoes', function (Blueprint $table) {
+                $table->id();
+                $table->unsignedBigInteger('numero_sequencial')->unique();
+                $table->foreignId('user_id')->constrained('users')->restrictOnDelete();
+                $table->foreignId('livro_id')->constrained('livros')->restrictOnDelete();
+                $table->string('foto_cidadao')->nullable();
+                $table->date('data_requisicao');
+                $table->date('data_fim_prevista');
+                $table->date('data_devolucao')->nullable();
+                $table->integer('dias_decorridos')->nullable();
+                $table->string('status', 20)->default('ativa');
+                $table->timestamps();
+            });
+        }
     }
 
     public function down(): void
     {
+        Schema::dropIfExists('requisicoes');
         Schema::dropIfExists('autor_livro');
         Schema::dropIfExists('livros');
         Schema::dropIfExists('autores');

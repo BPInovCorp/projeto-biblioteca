@@ -1,13 +1,29 @@
 <x-app-layout>
     <div data-theme="autumn" class="min-h-screen bg-base-200 text-base-content py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col gap-8">
-            <div class="card bg-base-100 shadow-xl border border-base-300 p-6 sm:p-8">
-                <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950">
-                    Olá, {{ auth()->user()->name }}! 👋
-                </h1>
-                <p class="text-sm opacity-80 mt-1">
-                    Bem-vindo ao painel de controlo da Biblioteca.
-                </p>
+            @if (session('status'))
+                <div class="alert alert-success text-white shadow-xl">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ session('status') }}</span>
+                </div>
+            @endif
+
+            <div class="card bg-base-100 shadow-xl border border-base-300 p-6 sm:p-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-amber-950">
+                        Olá, {{ auth()->user()->name }}! 👋
+                    </h1>
+                    <p class="text-sm opacity-80 mt-1">
+                        Bem-vindo ao painel de controlo da Biblioteca.
+                    </p>
+                </div>
+                <div>
+                    <a href="{{ route('admin.users.create') }}" class="btn btn-primary btn-sm">
+                        + Novo Administrador
+                    </a>
+                </div>
             </div>
 
             <div class="stats stats-vertical lg:stats-horizontal shadow-xl bg-base-100 border border-base-300 w-full">
