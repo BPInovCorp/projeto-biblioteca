@@ -22,6 +22,9 @@
                                 Painel de Controlo
                             </a>
                         @endif
+                        <a href="{{ route('requisicoes.index') }}" class="btn btn-ghost btn-sm">
+                            Requisições
+                        </a>
                         <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
                             O meu Perfil
                         </a>
@@ -40,6 +43,24 @@
         </header>
 
         <main class="container mx-auto px-4 py-8 flex flex-col gap-12">
+            @if (session('status'))
+                <div class="max-w-3xl mx-auto w-full alert alert-success text-white shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewbox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ session('status') }}</span>
+                </div>
+            @endif
+
+            @if (session('error'))
+                <div class="max-w-3xl mx-auto w-full alert alert-error text-white shadow-lg">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewbox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>{{ session('error') }}</span>
+                </div>
+            @endif
+
             <section class="max-w-3xl mx-auto w-full">
                 <div class="text-center mb-6">
                     <h2 class="text-2xl font-bold tracking-tight">Menus do Sistema</h2>
@@ -232,6 +253,7 @@
                                          data-autor-foto="{{ $autorFotoUrl }}"
                                          data-editora-logotipo="{{ $editoraLogoUrl }}"
                                          data-disponivel="{{ $livro->isDisponivel() ? '1' : '0' }}"
+                                         data-id="{{ $livro->id }}"
                                          onclick="abrirLivroPorElemento(this)">
 
                                         <div class="flex justify-center w-full mb-1">
@@ -313,6 +335,18 @@
                                     <span class="font-serif font-bold text-amber-950">Estado:</span>
                                     <span id="modal-livro-disponibilidade" data-texto-disponivel="{{ __('Disponível para Requisição') }}" data-texto-indisponivel="{{ __('Indisponível para Requisição') }}" class="badge font-bold"></span>
                                 </div>
+
+                                <div id="modal-btn-requisitar-container" class="mt-4 pt-3 border-t border-[#d8caa6] w-full flex justify-center">
+                                    @auth
+                                        <button type="button" id="modal-btn-requisitar" onclick="abrirModalConfirmacao()" data-texto-requisitar="{{ __('Requisitar Livro') }}" data-texto-indisponivel="{{ __('Indisponível para Requisição') }}" class="btn btn-primary w-full shadow-md">
+                                            {{ __('Requisitar Livro') }}
+                                        </button>
+                                    @else
+                                        <a href="{{ route('login') }}" class="btn btn-outline btn-primary w-full text-xs">
+                                            {{ __('Iniciar Sessão para Requisitar') }}
+                                        </a>
+                                    @endauth
+                                </div>
                             </div>
                         </div>
 
@@ -341,6 +375,70 @@
                     <button>Fechar</button>
                 </form>
             </dialog>
+
+            @auth
+                <dialog id="modal-confirmar-requisicao" class="modal">
+                    <div class="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+                        <form method="dialog">
+                            <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+                        </form>
+
+                        <h3 class="font-bold text-lg text-base-content border-b border-base-200 pb-2">
+                            {{ __('Confirmar Requisição de Livro') }}
+                        </h3>
+
+                        <form id="form-confirmar-requisicao" method="POST" action="{{ route('requisicoes.store') }}" class="mt-4 flex flex-col gap-4">
+                            @csrf
+                            <input type="hidden" name="livro_id" id="input-requisicao-livro-id" value="">
+
+                            <div class="flex items-center gap-4 bg-base-200 p-3 rounded-lg border border-base-300">
+                                <img id="confirmar-livro-capa" src="" alt="Capa" class="w-16 h-20 object-cover rounded shadow border border-base-300">
+                                <div class="flex flex-col">
+                                    <span class="text-xs font-semibold text-base-content/60">{{ __('Obra Selecionada') }}</span>
+                                    <span id="confirmar-livro-titulo" class="font-bold text-sm text-base-content"></span>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-1 border-t border-base-200 pt-3">
+                                <span class="text-xs font-bold uppercase tracking-wider text-base-content/70">{{ __('Dados do Requisitante') }}</span>
+                                <div class="flex items-center gap-3 bg-base-200/50 p-2.5 rounded-lg border border-base-300">
+                                    <img id="confirmar-cidadao-foto" src="{{ auth()->user()->profile_photo_url }}" alt="{{ auth()->user()->name }}" class="w-12 h-12 rounded-full object-cover border border-primary">
+                                    <div class="flex flex-col">
+                                        <span id="confirmar-cidadao-nome" class="text-sm font-bold text-base-content">{{ auth()->user()->name }}</span>
+                                        <span class="text-xs text-base-content/70">{{ auth()->user()->email }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-col gap-1 border-t border-base-200 pt-3">
+                                <span class="text-xs font-bold uppercase tracking-wider text-base-content/70">{{ __('Período da Requisição') }}</span>
+                                <div class="grid grid-cols-2 gap-2 text-xs">
+                                    <div class="bg-base-200/50 p-2.5 rounded-lg border border-base-300 flex flex-col gap-1">
+                                        <span class="text-base-content/70">{{ __('Data de Início') }}:</span>
+                                        <span id="confirmar-data-inicio" class="badge badge-outline text-xs font-mono font-bold">{{ now()->format('d/m/Y') }}</span>
+                                    </div>
+                                    <div class="bg-base-200/50 p-2.5 rounded-lg border border-base-300 flex flex-col gap-1">
+                                        <span class="text-base-content/70">{{ __('Data de Devolução Prevista (+5 dias)') }}:</span>
+                                        <span id="confirmar-data-devolucao" class="badge badge-outline text-xs font-mono font-bold text-primary">{{ now()->addDays(5)->format('d/m/Y') }}</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="modal-action border-t border-base-200 pt-3 mt-2 flex justify-end gap-2">
+                                <button type="button" onclick="document.getElementById('modal-confirmar-requisicao').close()" class="btn btn-ghost btn-sm">
+                                    {{ __('Cancelar') }}
+                                </button>
+                                <button type="submit" class="btn btn-primary btn-sm">
+                                    {{ __('Confirmar Requisição') }}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <form method="dialog" class="modal-backdrop">
+                        <button>{{ __('Fechar') }}</button>
+                    </form>
+                </dialog>
+            @endauth
 
             <footer class="footer footer-center p-6 bg-base-200 text-base-content border-t border-base-300 mt-12">
                 <div>
@@ -388,7 +486,42 @@
                         imgEditora.classList.add('hidden');
                     }
 
+                    const btnReq = document.getElementById('modal-btn-requisitar');
+                    if (btnReq) {
+                        if (dados.disponivel === '1') {
+                            btnReq.disabled = false;
+                            btnReq.className = 'btn btn-primary w-full shadow-md';
+                            btnReq.textContent = btnReq.dataset.textoRequisitar;
+                        } else {
+                            btnReq.disabled = true;
+                            btnReq.className = 'btn bg-amber-900/20 text-amber-950 border border-amber-950/40 cursor-not-allowed font-bold w-full';
+                            btnReq.textContent = btnReq.dataset.textoIndisponivel;
+                        }
+                    }
+
+                    const inputLivroId = document.getElementById('input-requisicao-livro-id');
+                    if (inputLivroId) {
+                        inputLivroId.value = dados.id;
+                    }
+
+                    const confirmarTitulo = document.getElementById('confirmar-livro-titulo');
+                    if (confirmarTitulo) {
+                        confirmarTitulo.textContent = dados.titulo;
+                    }
+
+                    const confirmarCapa = document.getElementById('confirmar-livro-capa');
+                    if (confirmarCapa) {
+                        confirmarCapa.src = dados.capa;
+                    }
+
                     document.getElementById('modal-detalhes-livro').showModal();
+                }
+
+                function abrirModalConfirmacao() {
+                    const modalConfirmacao = document.getElementById('modal-confirmar-requisicao');
+                    if (modalConfirmacao) {
+                        modalConfirmacao.showModal();
+                    }
                 }
             </script>
         </body>

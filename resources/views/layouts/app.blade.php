@@ -25,6 +25,10 @@
                     Estante
                 </a>
 
+                <a href="{{ route('requisicoes.index') }}" class="btn {{ request()->routeIs('requisicoes.*') ? 'btn-active' : 'btn-ghost' }} btn-sm">
+                    Requisições
+                </a>
+
                 @if(request()->user()?->isAdmin())
                     <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">
                         Painel de Controlo
@@ -45,6 +49,22 @@
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
                 <div class="alert alert-success text-white shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold">
                     <span>✅</span> {{ session('success') }}
+                </div>
+            </div>
+        @endif
+
+        @if (session('status'))
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="alert alert-success text-white shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold">
+                    <span>✅</span> {{ session('status') }}
+                </div>
+            </div>
+        @endif
+
+        @if (session('error'))
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
+                <div class="alert alert-error text-white shadow-md flex items-center gap-2 text-xs sm:text-sm font-bold">
+                    <span>⚠️</span> {{ session('error') }}
                 </div>
             </div>
         @endif

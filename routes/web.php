@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\EditoraController;
 use App\Http\Controllers\LivroController;
+use App\Http\Controllers\RequisicaoController;
 use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
@@ -95,6 +96,9 @@ Route::middleware([
 
         return view('dashboard');
     })->name('dashboard');
+
+    Route::get('/requisicoes', [RequisicaoController::class, 'index'])->name('requisicoes.index');
+    Route::post('/requisicoes', [RequisicaoController::class, 'store'])->name('requisicoes.store');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);
