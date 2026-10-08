@@ -99,6 +99,7 @@ Route::middleware([
 
     Route::get('/requisicoes', [RequisicaoController::class, 'index'])->name('requisicoes.index');
     Route::post('/requisicoes', [RequisicaoController::class, 'store'])->name('requisicoes.store');
+    Route::post('/requisicoes/{requisicao}/cancelar', [RequisicaoController::class, 'cancelar'])->name('requisicoes.cancelar');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);
@@ -107,5 +108,6 @@ Route::middleware([
         Route::resource('livros', LivroController::class)->except(['show']);
         Route::get('admin/utilizadores/criar', [AdminUserController::class, 'create'])->name('admin.users.create');
         Route::post('admin/utilizadores', [AdminUserController::class, 'store'])->name('admin.users.store');
+        Route::post('requisicoes/{requisicao}/devolver', [RequisicaoController::class, 'devolver'])->name('requisicoes.devolver');
     });
 });

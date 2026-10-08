@@ -89,6 +89,7 @@
                                     <th>{{ __('Data Requisição') }}</th>
                                     <th>{{ __('Entrega Prevista') }}</th>
                                     <th>{{ __('Estado') }}</th>
+                                    <th>{{ __('Ações') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -114,14 +115,23 @@
                                             </div>
                                         </td>
                                         @if(auth()->user()->isAdmin())
+                                            @php
+                                                $cidadaoHistorico = optional($requisicao->user)->requisicoes ? $requisicao->user->requisicoes->map(fn($r) => [
+                                                    'numero' => str_pad($r->numero_sequencial, 4, '0', STR_PAD_LEFT),
+                                                    'livro' => optional($r->livro)->nome ?? 'Obra',
+                                                    'inicio' => $r->data_requisicao->format('d/m/Y'),
+                                                    'fim' => $r->data_devolucao ? $r->data_devolucao->format('d/m/Y') : $r->data_fim_prevista->format('d/m/Y'),
+                                                    'status' => $r->status,
+                                                ])->values() : [];
+                                            @endphp
                                             <td>
-                                                <div class="flex items-center gap-3">
-                                                    <img src="{{ $requisicao->foto_cidadao ?? optional($requisicao->user)->profile_photo_url }}" alt="{{ optional($requisicao->user)->name }}" class="w-9 h-9 rounded-full object-cover border border-primary shrink-0">
+                                                <button type="button" class="btn btn-ghost btn-xs p-1 flex items-center gap-2.5 text-left normal-case h-auto" onclick="abrirModalCidadao(this)" data-nome="{{ optional($requisicao->user)->name }}" data-email="{{ optional($requisicao->user)->email }}" data-foto="{{ $requisicao->foto_cidadao ?? optional($requisicao->user)->profile_photo_url }}" data-historico="{{ json_encode($cidadaoHistorico) }}" title="{{ __('Ver Detalhes e Histórico') }}">
+                                                    <img src="{{ $requisicao->foto_cidadao ?? optional($requisicao->user)->profile_photo_url }}" alt="{{ optional($requisicao->user)->name }}" class="w-8 h-8 rounded-full object-cover border border-primary shrink-0">
                                                     <div class="flex flex-col">
-                                                        <span class="font-bold text-base-content">{{ optional($requisicao->user)->name }}</span>
-                                                        <span class="text-xs text-base-content/70">{{ optional($requisicao->user)->email }}</span>
+                                                        <span class="font-bold text-base-content hover:underline leading-tight">{{ optional($requisicao->user)->name }}</span>
+                                                        <span class="text-[11px] text-base-content/70 leading-tight">{{ optional($requisicao->user)->email }}</span>
                                                     </div>
-                                                </div>
+                                                </button>
                                             </td>
                                         @endif
                                         <td class="font-mono">
@@ -135,16 +145,49 @@
                                                 <span class="badge badge-warning text-stone-900 font-bold badge-sm">
                                                     {{ __('Ativa') }}
                                                 </span>
+                                            @elseif($requisicao->status === 'entregue')
+                                                <div class="flex flex-col gap-0.5">
+                                                    <span class="badge badge-success text-white font-bold badge-sm">
+                                                        {{ __('Entregue') }}
+                                                    </span>
+                                                    @if($requisicao->data_devolucao)
+                                                        <span class="text-[10px] font-mono text-base-content/70">
+                                                            {{ $requisicao->data_devolucao->format('d/m/Y') }} ({{ $requisicao->dias_decorridos }} {{ $requisicao->dias_decorridos == 1 ? __('dia') : __('dias') }})
+                                                        </span>
+                                                    @endif
+                                                </div>
                                             @else
-                                                <span class="badge badge-success text-white font-bold badge-sm">
-                                                    {{ __('Entregue') }}
+                                                <span class="badge badge-ghost font-bold badge-sm text-base-content/70">
+                                                    {{ __('Cancelada') }}
                                                 </span>
                                             @endif
+                                        </td>
+                                        <td>
+                                            <div class="flex items-center gap-1.5">
+                                                @if(auth()->user()->isAdmin() && $requisicao->status === 'ativa')
+                                                    <button type="button" class="btn btn-success btn-xs text-white font-bold" onclick="abrirModalDevolucao(this)" data-url="{{ route('requisicoes.devolver', $requisicao) }}" data-titulo="{{ $requisicao->livro->nome }}" data-numero="{{ str_pad($requisicao->numero_sequencial, 4, '0', STR_PAD_LEFT) }}" data-cidadao="{{ optional($requisicao->user)->name }}">
+                                                        {{ __('Confirmar Receção') }}
+                                                    </button>
+                                                @endif
+
+                                                @if($requisicao->status === 'ativa' && (auth()->user()->isAdmin() || auth()->id() === $requisicao->user_id))
+                                                    <form method="POST" action="{{ route('requisicoes.cancelar', $requisicao) }}" class="inline">
+                                                        @csrf
+                                                        <button type="submit" class="btn btn-ghost btn-xs text-error font-bold" data-confirmar="{{ __('Tem a certeza de que pretende cancelar esta requisição?') }}" onclick="return confirm(this.dataset.confirmar)">
+                                                            {{ __('Cancelar') }}
+                                                        </button>
+                                                    </form>
+                                                @endif
+
+                                                @if($requisicao->status !== 'ativa')
+                                                    <span class="text-xs text-base-content/50">—</span>
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="{{ auth()->user()->isAdmin() ? 6 : 5 }}" class="text-center py-8 text-base-content/60">
+                                        <td colspan="{{ auth()->user()->isAdmin() ? 7 : 6 }}" class="text-center py-8 text-base-content/60">
                                             {{ __('Não existem requisições registadas até ao momento.') }}
                                         </td>
                                     </tr>
@@ -160,4 +203,152 @@
             </div>
         </div>
     </div>
+
+    @if(auth()->user()->isAdmin())
+        <dialog id="modal-confirmar-devolucao" class="modal">
+            <div class="modal-box max-w-md bg-base-100 border border-base-300 shadow-2xl p-6">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+                </form>
+
+                <h3 class="font-bold text-lg text-amber-950 border-b border-base-200 pb-2">
+                    {{ __('Confirmar Receção do Livro') }}
+                </h3>
+
+                <form id="form-confirmar-devolucao" method="POST" action="" class="mt-4 flex flex-col gap-4">
+                    @csrf
+                    <div class="bg-base-200/60 p-3 rounded-lg border border-base-300 flex flex-col gap-1.5 text-xs">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-base-content/70">{{ __('Nº Registo') }}:</span>
+                            <span id="devolucao-numero-sequencial" class="font-mono font-bold text-primary"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-base-content/70">{{ __('Obra') }}:</span>
+                            <span id="devolucao-livro-titulo" class="font-bold text-base-content"></span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-base-content/70">{{ __('Cidadão') }}:</span>
+                            <span id="devolucao-cidadao-nome" class="text-base-content"></span>
+                        </div>
+                    </div>
+
+                    <div class="form-control w-full">
+                        <label class="label py-1" for="input-data-devolucao">
+                            <span class="label-text font-bold text-xs text-base-content">{{ __('Data Efetiva de Entrega') }}</span>
+                        </label>
+                        <input type="date" name="data_devolucao" id="input-data-devolucao" value="{{ now()->format('Y-m-d') }}" class="input input-bordered input-sm w-full font-mono">
+                    </div>
+
+                    <div class="modal-action border-t border-base-200 pt-3 mt-2 flex justify-end gap-2">
+                        <button type="button" onclick="document.getElementById('modal-confirmar-devolucao').close()" class="btn btn-ghost btn-sm">
+                            {{ __('Cancelar') }}
+                        </button>
+                        <button type="submit" class="btn btn-success btn-sm text-white font-bold">
+                            {{ __('Confirmar Receção') }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>{{ __('Fechar') }}</button>
+            </form>
+        </dialog>
+
+        <dialog id="modal-detalhes-cidadao" class="modal">
+            <div class="modal-box max-w-2xl bg-base-100 border border-base-300 shadow-2xl p-6">
+                <form method="dialog">
+                    <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+                </form>
+
+                <h3 class="font-bold text-lg text-amber-950 border-b border-base-200 pb-2 flex items-center gap-2">
+                    <span>👤</span> {{ __('Detalhes e Histórico do Cidadão') }}
+                </h3>
+
+                <div class="flex items-center gap-4 bg-base-200/60 p-4 rounded-lg border border-base-300 mt-4">
+                    <img id="cidadao-modal-foto" src="" alt="Cidadão" class="w-14 h-14 rounded-full object-cover border-2 border-primary shrink-0 shadow">
+                    <div class="flex flex-col">
+                        <span id="cidadao-modal-nome" class="font-bold text-base text-base-content"></span>
+                        <span id="cidadao-modal-email" class="text-xs text-base-content/70 font-mono"></span>
+                        <span class="badge badge-outline badge-sm mt-1 w-fit">{{ __('Cidadão Registado') }}</span>
+                    </div>
+                </div>
+
+                <div class="mt-4">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-base-content/80 mb-2">
+                        {{ __('Histórico de Todas as Requisições') }}
+                    </h4>
+                    <div class="overflow-x-auto max-h-56 overflow-y-auto border border-base-200 rounded-lg">
+                        <table class="table table-zebra table-xs w-full">
+                            <thead>
+                                <tr class="bg-base-200 text-base-content/70">
+                                    <th>{{ __('Nº') }}</th>
+                                    <th>{{ __('Livro') }}</th>
+                                    <th>{{ __('Datas') }}</th>
+                                    <th>{{ __('Estado') }}</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cidadao-modal-tabela-corpo"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="modal-action border-t border-base-200 pt-3 mt-4 flex justify-end">
+                    <button type="button" onclick="document.getElementById('modal-detalhes-cidadao').close()" class="btn btn-ghost btn-sm">
+                        {{ __('Fechar') }}
+                    </button>
+                </div>
+            </div>
+            <form method="dialog" class="modal-backdrop">
+                <button>{{ __('Fechar') }}</button>
+            </form>
+        </dialog>
+
+        <script>
+            window.abrirModalDevolucao = function(botao) {
+                const form = document.getElementById('form-confirmar-devolucao');
+                form.action = botao.dataset.url;
+                document.getElementById('devolucao-numero-sequencial').textContent = '#' + botao.dataset.numero;
+                document.getElementById('devolucao-livro-titulo').textContent = botao.dataset.titulo;
+                document.getElementById('devolucao-cidadao-nome').textContent = botao.dataset.cidadao;
+                document.getElementById('modal-confirmar-devolucao').showModal();
+            };
+
+            window.abrirModalCidadao = function(botao) {
+                document.getElementById('cidadao-modal-nome').textContent = botao.dataset.nome;
+                document.getElementById('cidadao-modal-email').textContent = botao.dataset.email;
+                document.getElementById('cidadao-modal-foto').src = botao.dataset.foto;
+
+                const historico = JSON.parse(botao.dataset.historico || '[]');
+                const tbody = document.getElementById('cidadao-modal-tabela-corpo');
+                tbody.innerHTML = '';
+
+                if (historico.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-60">Sem registos de requisições.</td></tr>';
+                } else {
+                    historico.forEach(r => {
+                        let badgeClass = 'badge-warning text-stone-900';
+                        let badgeText = 'Ativa';
+                        if (r.status === 'entregue') {
+                            badgeClass = 'badge-success text-white';
+                            badgeText = 'Entregue';
+                        } else if (r.status === 'cancelada') {
+                            badgeClass = 'badge-ghost';
+                            badgeText = 'Cancelada';
+                        }
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td class="font-mono font-bold text-primary">#${r.numero}</td>
+                            <td class="font-bold">${r.livro}</td>
+                            <td class="font-mono text-[11px]">${r.inicio} → ${r.fim}</td>
+                            <td><span class="badge ${badgeClass} badge-xs font-bold">${badgeText}</span></td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+
+                document.getElementById('modal-detalhes-cidadao').showModal();
+            };
+        </script>
+    @endif
 </x-app-layout>

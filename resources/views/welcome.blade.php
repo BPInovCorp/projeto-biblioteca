@@ -241,6 +241,12 @@
                                         $primeiroAutor = optional($livro->autores->first());
                                         $autorFotoUrl = $primeiroAutor->foto ? (Illuminate\Support\Str::startsWith($primeiroAutor->foto, ['http://', 'https://']) ? $primeiroAutor->foto : asset($primeiroAutor->foto)) : '';
                                         $editoraLogoUrl = optional($livro->editora)->logotipo ? (Illuminate\Support\Str::startsWith(optional($livro->editora)->logotipo, ['http://', 'https://']) ? optional($livro->editora)->logotipo : asset(optional($livro->editora)->logotipo)) : '';
+                                        $historicoData = $livro->requisicoes->map(fn($r) => [
+                                            'numero' => str_pad($r->numero_sequencial, 4, '0', STR_PAD_LEFT),
+                                            'inicio' => $r->data_requisicao->format('d/m/Y'),
+                                            'devolucao' => $r->data_devolucao ? $r->data_devolucao->format('d/m/Y') : null,
+                                            'status' => $r->status,
+                                        ])->values();
                                     @endphp
                                     <div class="lombada-livro group relative h-[390px] sm:h-[420px] w-16 sm:w-18 md:w-20 rounded-r-sm rounded-l-xs shadow-xl hover:-translate-y-6 hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col justify-between p-2 sm:p-2.5 border-l-4 border-r-2 border-t border-b overflow-hidden select-none {{ $estilosLombadas[$loop->index % count($estilosLombadas)] }}"
                                          data-titulo="{{ $livro->nome }}"
@@ -254,6 +260,7 @@
                                          data-editora-logotipo="{{ $editoraLogoUrl }}"
                                          data-disponivel="{{ $livro->isDisponivel() ? '1' : '0' }}"
                                          data-id="{{ $livro->id }}"
+                                         data-historico="{{ json_encode($historicoData) }}"
                                          onclick="abrirLivroPorElemento(this)">
 
                                         <div class="flex justify-center w-full mb-1">
@@ -354,7 +361,21 @@
                             <div>
                                 <h3 id="modal-livro-titulo" class="font-serif font-bold text-2xl sm:text-3xl text-amber-950 border-b-2 border-[#c5ad82] pb-2 leading-tight tracking-tight antialiased"></h3>
                                 <h4 class="font-serif font-semibold text-xs uppercase tracking-widest text-amber-900 mt-4">Bibliografia & Sinopse</h4>
-                                <p id="modal-livro-bibliografia" class="font-serif text-xs sm:text-sm text-neutral-800 leading-relaxed mt-2 text-justify overflow-y-auto max-h-56 sm:max-h-60 pr-2 antialiased"></p>
+                                <p id="modal-livro-bibliografia" class="font-serif text-xs sm:text-sm text-neutral-800 leading-relaxed mt-2 text-justify overflow-y-auto max-h-36 sm:max-h-40 pr-2 antialiased"></p>
+
+                                <div id="modal-livro-historico-bloco" class="mt-3 border-t border-[#c5ad82] pt-2">
+                                    <details class="collapse collapse-arrow bg-amber-100/70 border border-[#c5ad82] rounded-md after:!top-1/2 after:!-translate-y-1/2">
+                                        <summary class="collapse-title text-xs font-serif font-bold uppercase tracking-wider text-amber-950 py-2.5 min-h-0 cursor-pointer flex items-center gap-1 after:!top-[50%]">
+                                            <span>📜</span> {{ __('Histórico de Requisições') }} (<span id="modal-livro-historico-total">0</span>)
+                                        </summary>
+                                        <div class="collapse-content px-2 py-1 max-h-32 overflow-y-auto">
+                                            <div id="modal-livro-historico-vazio" class="text-xs text-neutral-600 italic py-1 text-center">
+                                                {{ __('Sem histórico de requisições registadas.') }}
+                                            </div>
+                                            <div id="modal-livro-historico-lista" class="flex flex-col gap-1 hidden"></div>
+                                        </div>
+                                    </details>
+                                </div>
                             </div>
                             <div class="flex justify-between items-end mt-6 pt-4 border-t border-[#c5ad82]">
                                 <div class="flex flex-col items-center gap-1.5">
@@ -512,6 +533,49 @@
                     const confirmarCapa = document.getElementById('confirmar-livro-capa');
                     if (confirmarCapa) {
                         confirmarCapa.src = dados.capa;
+                    }
+
+                    const historico = JSON.parse(dados.historico || '[]');
+                    const totalSpan = document.getElementById('modal-livro-historico-total');
+                    const listaContainer = document.getElementById('modal-livro-historico-lista');
+                    const vazioMsg = document.getElementById('modal-livro-historico-vazio');
+
+                    if (totalSpan) {
+                        totalSpan.textContent = historico.length;
+                    }
+
+                    if (listaContainer && vazioMsg) {
+                        listaContainer.innerHTML = '';
+                        if (historico.length === 0) {
+                            vazioMsg.classList.remove('hidden');
+                            listaContainer.classList.add('hidden');
+                        } else {
+                            vazioMsg.classList.add('hidden');
+                            listaContainer.classList.remove('hidden');
+                            historico.forEach(item => {
+                                const row = document.createElement('div');
+                                row.className = 'flex items-center justify-between text-xs p-1 bg-base-100/90 rounded border border-[#d8caa6]';
+
+                                let badgeClass = 'badge-warning text-stone-900';
+                                let badgeText = 'Ativa';
+                                if (item.status === 'entregue') {
+                                    badgeClass = 'badge-success text-white';
+                                    badgeText = 'Entregue';
+                                } else if (item.status === 'cancelada') {
+                                    badgeClass = 'badge-ghost';
+                                    badgeText = 'Cancelada';
+                                }
+
+                                const dataTexto = item.devolucao ? `${item.inicio} → ${item.devolucao}` : `${item.inicio}`;
+
+                                row.innerHTML = `
+                                    <span class="font-mono font-bold text-amber-950">#${item.numero}</span>
+                                    <span class="text-[11px] font-mono text-neutral-700">${dataTexto}</span>
+                                    <span class="badge ${badgeClass} badge-xs font-bold">${badgeText}</span>
+                                `;
+                                listaContainer.appendChild(row);
+                            });
+                        }
                     }
 
                     document.getElementById('modal-detalhes-livro').showModal();

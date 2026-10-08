@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Livro;
 use App\Models\Requisicao;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -76,5 +77,49 @@ class RequisicaoController extends Controller
 
             return redirect()->back()->with('status', __('Requisição realizada com sucesso! Número de registo: :numero', ['numero' => $proximoNumero]));
         });
+    }
+
+    public function devolver(Request $request, Requisicao $requisicao): RedirectResponse
+    {
+        $request->validate([
+            'data_devolucao' => ['nullable', 'date'],
+        ]);
+
+        if ($requisicao->status === 'entregue') {
+            return redirect()->back()->with('error', __('Esta requisição já se encontra entregue.'));
+        }
+
+        $dataDevolucao = $request->filled('data_devolucao')
+            ? Carbon::parse($request->input('data_devolucao'))
+            : today();
+
+        $diasDecorridos = (int) Carbon::parse($requisicao->data_requisicao)->diffInDays($dataDevolucao);
+
+        $requisicao->update([
+            'data_devolucao' => $dataDevolucao->toDateString(),
+            'dias_decorridos' => $diasDecorridos,
+            'status' => 'entregue',
+        ]);
+
+        return redirect()->back()->with('status', __('Livro rececionado e devolvido com sucesso.'));
+    }
+
+    public function cancelar(Request $request, Requisicao $requisicao): RedirectResponse
+    {
+        $user = $request->user();
+
+        if ($requisicao->status !== 'ativa') {
+            return redirect()->back()->with('error', __('Apenas é possível cancelar requisições ativas.'));
+        }
+
+        if (!$user->isAdmin() && $requisicao->user_id !== $user->id) {
+            return redirect()->back()->with('error', __('Não tem autorização para cancelar esta requisição.'));
+        }
+
+        $requisicao->update([
+            'status' => 'cancelada',
+        ]);
+
+        return redirect()->back()->with('status', __('Requisição cancelada com sucesso.'));
     }
 }
