@@ -171,12 +171,9 @@
                                                 @endif
 
                                                 @if($requisicao->status === 'ativa' && (auth()->user()->isAdmin() || auth()->id() === $requisicao->user_id))
-                                                    <form method="POST" action="{{ route('requisicoes.cancelar', $requisicao) }}" class="inline">
-                                                        @csrf
-                                                        <button type="submit" class="btn btn-ghost btn-xs text-error font-bold" data-confirmar="{{ __('Tem a certeza de que pretende cancelar esta requisição?') }}" onclick="return confirm(this.dataset.confirmar)">
-                                                            {{ __('Cancelar') }}
-                                                        </button>
-                                                    </form>
+                                                    <button type="button" class="btn btn-ghost btn-xs text-error font-bold" onclick="abrirModalCancelamento(this)" data-url="{{ route('requisicoes.cancelar', $requisicao) }}" data-numero="{{ str_pad($requisicao->numero_sequencial, 4, '0', STR_PAD_LEFT) }}" data-titulo="{{ $requisicao->livro->nome }}">
+                                                        {{ __('Cancelar') }}
+                                                    </button>
                                                 @endif
 
                                                 @if($requisicao->status !== 'ativa')
@@ -203,6 +200,44 @@
             </div>
         </div>
     </div>
+
+    <dialog id="modal-confirmar-cancelamento" class="modal">
+        <div class="modal-box max-w-md bg-base-100 border border-base-300 shadow-2xl p-6 text-center">
+            <div class="text-4xl text-warning mb-2">⚠️</div>
+            <h3 class="font-bold text-lg text-amber-950">
+                {{ __('Cancelar Requisição') }}
+            </h3>
+            <p class="text-xs text-base-content/70 mt-1">
+                {{ __('Tem a certeza de que pretende cancelar esta requisição? O livro ficará imediatamente disponível para outros utilizadores.') }}
+            </p>
+
+            <div class="bg-base-200/60 p-3 rounded-lg border border-base-300 flex flex-col gap-1.5 text-xs text-left mt-4">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-base-content/70">{{ __('Nº Registo') }}:</span>
+                    <span id="cancelar-numero-sequencial" class="font-mono font-bold text-primary"></span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-base-content/70">{{ __('Obra') }}:</span>
+                    <span id="cancelar-livro-titulo" class="font-bold text-base-content"></span>
+                </div>
+            </div>
+
+            <div class="modal-action flex justify-center gap-3 mt-6">
+                <button type="button" onclick="document.getElementById('modal-confirmar-cancelamento').close()" class="btn btn-ghost btn-sm">
+                    {{ __('Voltar') }}
+                </button>
+                <form id="form-confirmar-cancelamento" method="POST" action="" class="inline">
+                    @csrf
+                    <button type="submit" class="btn btn-error btn-sm text-white font-bold">
+                        {{ __('Confirmar Cancelamento') }}
+                    </button>
+                </form>
+            </div>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>{{ __('Fechar') }}</button>
+        </form>
+    </dialog>
 
     @if(auth()->user()->isAdmin())
         <dialog id="modal-confirmar-devolucao" class="modal">
@@ -302,26 +337,45 @@
                 <button>{{ __('Fechar') }}</button>
             </form>
         </dialog>
+    @endif
 
-        <script>
-            window.abrirModalDevolucao = function(botao) {
-                const form = document.getElementById('form-confirmar-devolucao');
-                form.action = botao.dataset.url;
-                document.getElementById('devolucao-numero-sequencial').textContent = '#' + botao.dataset.numero;
-                document.getElementById('devolucao-livro-titulo').textContent = botao.dataset.titulo;
-                document.getElementById('devolucao-cidadao-nome').textContent = botao.dataset.cidadao;
-                document.getElementById('modal-confirmar-devolucao').showModal();
-            };
+    <script>
+        window.abrirModalCancelamento = function(botao) {
+            const form = document.getElementById('form-confirmar-cancelamento');
+            if (form) form.action = botao.dataset.url;
+            const seq = document.getElementById('cancelar-numero-sequencial');
+            if (seq) seq.textContent = '#' + botao.dataset.numero;
+            const tit = document.getElementById('cancelar-livro-titulo');
+            if (tit) tit.textContent = botao.dataset.titulo;
+            const modal = document.getElementById('modal-confirmar-cancelamento');
+            if (modal) modal.showModal();
+        };
 
-            window.abrirModalCidadao = function(botao) {
-                document.getElementById('cidadao-modal-nome').textContent = botao.dataset.nome;
-                document.getElementById('cidadao-modal-email').textContent = botao.dataset.email;
-                document.getElementById('cidadao-modal-foto').src = botao.dataset.foto;
+        window.abrirModalDevolucao = function(botao) {
+            const form = document.getElementById('form-confirmar-devolucao');
+            if (form) form.action = botao.dataset.url;
+            const seq = document.getElementById('devolucao-numero-sequencial');
+            if (seq) seq.textContent = '#' + botao.dataset.numero;
+            const tit = document.getElementById('devolucao-livro-titulo');
+            if (tit) tit.textContent = botao.dataset.titulo;
+            const cid = document.getElementById('devolucao-cidadao-nome');
+            if (cid) cid.textContent = botao.dataset.cidadao;
+            const modal = document.getElementById('modal-confirmar-devolucao');
+            if (modal) modal.showModal();
+        };
 
-                const historico = JSON.parse(botao.dataset.historico || '[]');
-                const tbody = document.getElementById('cidadao-modal-tabela-corpo');
+        window.abrirModalCidadao = function(botao) {
+            const nome = document.getElementById('cidadao-modal-nome');
+            if (nome) nome.textContent = botao.dataset.nome;
+            const email = document.getElementById('cidadao-modal-email');
+            if (email) email.textContent = botao.dataset.email;
+            const foto = document.getElementById('cidadao-modal-foto');
+            if (foto) foto.src = botao.dataset.foto;
+
+            const historico = JSON.parse(botao.dataset.historico || '[]');
+            const tbody = document.getElementById('cidadao-modal-tabela-corpo');
+            if (tbody) {
                 tbody.innerHTML = '';
-
                 if (historico.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-60">Sem registos de requisições.</td></tr>';
                 } else {
@@ -346,9 +400,10 @@
                         tbody.appendChild(tr);
                     });
                 }
+            }
 
-                document.getElementById('modal-detalhes-cidadao').showModal();
-            };
-        </script>
-    @endif
+            const modal = document.getElementById('modal-detalhes-cidadao');
+            if (modal) modal.showModal();
+        };
+    </script>
 </x-app-layout>

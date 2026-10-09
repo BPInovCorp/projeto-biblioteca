@@ -2,13 +2,18 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\RequisicaoConfirmadaMail;
 use App\Models\Livro;
 use App\Models\Requisicao;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\View\View;
+use Throwable;
 
 class RequisicaoController extends Controller
 {
@@ -16,7 +21,7 @@ class RequisicaoController extends Controller
     {
         $user = $request->user();
 
-        $query = Requisicao::with(['user', 'livro'])->latest('id');
+        $query = Requisicao::with(['user.requisicoes.livro', 'livro'])->latest('id');
 
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);
@@ -30,7 +35,7 @@ class RequisicaoController extends Controller
         }
 
         $totalAtivas = (clone $kpisQuery)->where('status', 'ativa')->count();
-        $ultimos30Dias = (clone $kpisQuery)->where('data_requisicao', '>=', now()->subDays(30)->toDateString())->count();
+        $ultimos30Dias = (clone $kpisQuery)->where('status', '!=', 'cancelada')->where('data_requisicao', '>=', now()->subDays(30)->toDateString())->count();
         $entreguesHoje = (clone $kpisQuery)->where('status', 'entregue')->whereDate('data_devolucao', today())->count();
 
         return view('requisicoes.index', compact('requisicoes', 'totalAtivas', 'ultimos30Dias', 'entreguesHoje'));
@@ -44,45 +49,77 @@ class RequisicaoController extends Controller
 
         $user = $request->user();
 
-        return DB::transaction(function () use ($validated, $user) {
-            $livro = Livro::lockForUpdate()->findOrFail($validated['livro_id']);
+        $requisicao = retry(3, function () use ($validated, $user) {
+            return DB::transaction(function () use ($validated, $user) {
+                $livro = Livro::lockForUpdate()->findOrFail($validated['livro_id']);
 
-            if (!$livro->isDisponivel()) {
-                return redirect()->back()->with('error', __('Livro indisponível para requisição.'));
+                if (!$livro->isDisponivel()) {
+                    return null;
+                }
+
+                $requisicoesAtivasCount = Requisicao::where('user_id', $user->id)
+                    ->where('status', 'ativa')
+                    ->lockForUpdate()
+                    ->count();
+
+                if ($requisicoesAtivasCount >= 3) {
+                    return false;
+                }
+
+                $ultimoNumero = Requisicao::max('numero_sequencial') ?? 0;
+                $proximoNumero = $ultimoNumero + 1;
+
+                $fotoSnapshot = $user->profile_photo_url;
+
+                return Requisicao::create([
+                    'numero_sequencial' => $proximoNumero,
+                    'user_id' => $user->id,
+                    'livro_id' => $livro->id,
+                    'foto_cidadao' => $fotoSnapshot,
+                    'data_requisicao' => now()->toDateString(),
+                    'data_fim_prevista' => now()->addDays(5)->toDateString(),
+                    'status' => 'ativa',
+                ]);
+            });
+        }, 100);
+
+        if ($requisicao === null) {
+            return redirect()->back()->with('error', __('Livro indisponível para requisição.'));
+        }
+
+        if ($requisicao === false) {
+            return redirect()->back()->with('error', __('Atingiu o limite máximo de 3 livros requisitados em simultâneo.'));
+        }
+
+        $requisicao->load(['user', 'livro.editora', 'livro.autores']);
+
+        try {
+            Mail::to($user->email)->send(new RequisicaoConfirmadaMail($requisicao, false));
+        } catch (Throwable $e) {
+            Log::error('Falha ao enviar email ao cidadão: ' . $e->getMessage());
+        }
+
+        try {
+            $administradores = User::where('role', 'admin')->get();
+            foreach ($administradores as $admin) {
+                Mail::to($admin->email)->send(new RequisicaoConfirmadaMail($requisicao, true));
             }
+        } catch (Throwable $e) {
+            Log::error('Falha ao enviar email aos administradores: ' . $e->getMessage());
+        }
 
-            $requisicoesAtivasCount = Requisicao::where('user_id', $user->id)
-                ->where('status', 'ativa')
-                ->lockForUpdate()
-                ->count();
-
-            if ($requisicoesAtivasCount >= 3) {
-                return redirect()->back()->with('error', __('Atingiu o limite máximo de 3 livros requisitados em simultâneo.'));
-            }
-
-            $ultimoNumero = Requisicao::max('numero_sequencial') ?? 0;
-            $proximoNumero = $ultimoNumero + 1;
-
-            $fotoSnapshot = $user->profile_photo_path ?? $user->profile_photo_url;
-
-            Requisicao::create([
-                'numero_sequencial' => $proximoNumero,
-                'user_id' => $user->id,
-                'livro_id' => $livro->id,
-                'foto_cidadao' => $fotoSnapshot,
-                'data_requisicao' => now()->toDateString(),
-                'data_fim_prevista' => now()->addDays(5)->toDateString(),
-                'status' => 'ativa',
-            ]);
-
-            return redirect()->back()->with('status', __('Requisição realizada com sucesso! Número de registo: :numero', ['numero' => $proximoNumero]));
-        });
+        return redirect()->back()->with('status', __('Requisição realizada com sucesso! Número de registo: :numero', ['numero' => $requisicao->numero_sequencial]));
     }
 
     public function devolver(Request $request, Requisicao $requisicao): RedirectResponse
     {
         $request->validate([
-            'data_devolucao' => ['nullable', 'date'],
+            'data_devolucao' => [
+                'nullable',
+                'date',
+                'after_or_equal:' . $requisicao->data_requisicao->toDateString(),
+                'before_or_equal:today',
+            ],
         ]);
 
         if ($requisicao->status === 'entregue') {
@@ -93,7 +130,7 @@ class RequisicaoController extends Controller
             ? Carbon::parse($request->input('data_devolucao'))
             : today();
 
-        $diasDecorridos = (int) Carbon::parse($requisicao->data_requisicao)->diffInDays($dataDevolucao);
+        $diasDecorridos = max(0, (int) Carbon::parse($requisicao->data_requisicao)->diffInDays($dataDevolucao));
 
         $requisicao->update([
             'data_devolucao' => $dataDevolucao->toDateString(),

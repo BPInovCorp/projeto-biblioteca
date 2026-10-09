@@ -18,23 +18,23 @@ class DatabaseSeeder extends Seeder
             throw new RuntimeException('As credenciais do administrador nao estao definidas no .env');
         }
 
-        User::updateOrCreate(
+        $admin = User::updateOrCreate(
             ['email' => $adminEmail],
             [
                 'name' => env('ADMIN_NAME', 'Bruno Pinto'),
                 'password' => $adminPassword,
-                'role' => 'admin',
             ]
         );
+        $admin->forceFill(['role' => 'admin'])->save();
 
-        User::updateOrCreate(
+        $cidadao = User::updateOrCreate(
             ['email' => 'cidadao@biblioteca.pt'],
             [
                 'name' => 'Cidadão Exemplo',
                 'password' => 'password',
-                'role' => 'cidadao',
             ]
         );
+        $cidadao->forceFill(['role' => 'cidadao'])->save();
 
         $this->call(BibliotecaSeeder::class);
     }

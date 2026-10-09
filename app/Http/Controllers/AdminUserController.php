@@ -24,7 +24,7 @@ class AdminUserController extends Controller
             'password' => ['required', 'confirmed', Password::defaults()],
         ]);
 
-        User::create([
+        User::forceCreate([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'role' => 'admin',

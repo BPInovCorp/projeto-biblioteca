@@ -13,7 +13,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (Request $request) {
-    $query = Livro::with(['editora', 'autores']);
+    $query = Livro::with(['editora', 'autores', 'requisicoes']);
 
     $autoresSelecionados = $request->input('autores', []);
     if (!empty($autoresSelecionados)) {

@@ -48,6 +48,10 @@ class Livro extends Model
 
     public function isDisponivel(): bool
     {
+        if ($this->relationLoaded('requisicoes')) {
+            return !$this->requisicoes->contains('status', 'ativa');
+        }
+
         return !$this->requisicoes()->where('status', 'ativa')->exists();
     }
 }
