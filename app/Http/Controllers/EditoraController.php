@@ -73,13 +73,13 @@ class EditoraController extends Controller
 
         $editora->update($validated);
 
-        return redirect()->route('editoras.index')->with('success', 'editora atualizada com sucesso!');
+        return redirect()->route('editoras.index')->with('success', 'Editora atualizada com sucesso!');
     }
 
     public function destroy(Editora $editora)
     {
         $editora->delete();
 
-        return redirect()->route('editoras.index')->with('success', 'editora eliminada com sucesso!');
+        return redirect()->route('editoras.index')->with('success', 'Editora eliminada com sucesso!');
     }
 }

@@ -3,6 +3,7 @@
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\EditoraController;
+use App\Http\Controllers\GoogleBooksController;
 use App\Http\Controllers\LivroController;
 use App\Http\Controllers\RequisicaoController;
 use App\Models\Autor;
@@ -109,5 +110,8 @@ Route::middleware([
         Route::get('admin/utilizadores/criar', [AdminUserController::class, 'create'])->name('admin.users.create');
         Route::post('admin/utilizadores', [AdminUserController::class, 'store'])->name('admin.users.store');
         Route::post('requisicoes/{requisicao}/devolver', [RequisicaoController::class, 'devolver'])->name('requisicoes.devolver');
+        Route::get('admin/livros/importar', [GoogleBooksController::class, 'index'])->name('livros.importar');
+        Route::get('admin/livros/importar/pesquisar', [GoogleBooksController::class, 'search'])->name('livros.importar.search');
+        Route::post('admin/livros/importar', [GoogleBooksController::class, 'store'])->name('livros.importar.store');
     });
 });

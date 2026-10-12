@@ -73,13 +73,13 @@ class AutorController extends Controller
 
         $autor->update($validated);
 
-        return redirect()->route('autores.index')->with('success', 'autor atualizado com sucesso!');
+        return redirect()->route('autores.index')->with('success', 'Autor atualizado com sucesso!');
     }
 
     public function destroy(Autor $autor)
     {
         $autor->delete();
 
-        return redirect()->route('autores.index')->with('success', 'autor eliminado com sucesso!');
+        return redirect()->route('autores.index')->with('success', 'Autor eliminado com sucesso!');
     }
 }

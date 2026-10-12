@@ -253,7 +253,7 @@
                                          data-autor="{{ $livro->autores->pluck('nome')->implode(', ') }}"
                                          data-editora="{{ $livro->editora->nome ?? '' }}"
                                          data-isbn="{{ $livro->isbn }}"
-                                         data-preco="{{ number_format((float)$livro->preco, 2, ',', '.') }} €"
+                                         data-preco="{{ is_numeric($livro->preco) ? number_format((float)$livro->preco, 2, ',', '.') . ' €' : $livro->preco }}"
                                          data-bibliografia="{{ $livro->bibliografia }}"
                                          data-capa="{{ $capaUrl }}"
                                          data-autor-foto="{{ $autorFotoUrl }}"

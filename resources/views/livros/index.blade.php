@@ -10,7 +10,10 @@
                         Consulte, pesquise, filtre por campo, ordene e exporte o catálogo para Excel.
                     </p>
                 </div>
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <a href="{{ route('livros.importar') }}" class="btn btn-outline btn-sm">
+                        🌐 Importar da Google
+                    </a>
                     <a href="{{ route('livros.export') }}" class="btn btn-success btn-sm text-white">
                         📥 Exportar Excel
                     </a>
@@ -126,7 +129,13 @@
                                     <td class="font-semibold">{{ $livro->nome }}</td>
                                     <td>{{ $livro->editora->nome ?? '' }}</td>
                                     <td>{{ $livro->autores->pluck('nome')->implode(', ') }}</td>
-                                    <td class="font-bold text-primary">{{ number_format((float)$livro->preco, 2, ',', '.') }} €</td>
+                                    <td class="font-bold text-primary">
+                                        @if(is_numeric($livro->preco))
+                                            {{ number_format((float)$livro->preco, 2, ',', '.') }} €
+                                        @else
+                                            <span class="badge badge-ghost badge-sm font-normal text-xs opacity-80">{{ $livro->preco }}</span>
+                                        @endif
+                                    </td>
                                     <td class="text-end">
                                         <div class="flex justify-end gap-2">
                                             <a href="{{ route('livros.edit', $livro->id) }}" class="btn btn-xs btn-outline">Editar</a>
