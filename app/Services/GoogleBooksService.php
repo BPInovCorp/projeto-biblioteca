@@ -21,7 +21,7 @@ class GoogleBooksService
         $this->timeout = (int) config('services.google_books.timeout', 10);
     }
 
-    public function search(string $query, int $maxResults = 20, int $startIndex = 0): array
+    public function search(string $query, string $tipo = 'geral', int $maxResults = 12, int $startIndex = 0): array
     {
         $cleanQuery = trim($query);
 
@@ -29,24 +29,35 @@ class GoogleBooksService
             return [
                 'total' => 0,
                 'items' => [],
+                'erro' => null,
             ];
         }
 
-        $cacheKey = 'gb_search_' . md5($cleanQuery . '_' . $maxResults . '_' . $startIndex);
+        $tipoNormalizado = in_array($tipo, ['geral', 'titulo', 'autor', 'isbn', 'editora'], true) ? $tipo : 'geral';
+        $safeMax = max(1, min(20, $maxResults));
+        $safeStart = max(0, $startIndex);
 
-        return Cache::remember($cacheKey, now()->addMinutes(30), function () use ($cleanQuery, $maxResults, $startIndex) {
-            $params = [
-                'q' => $cleanQuery,
-                'maxResults' => max(1, min(20, $maxResults)),
-                'startIndex' => max(0, $startIndex),
-            ];
+        $cacheKey = 'gb_search_' . md5($cleanQuery . '_' . $tipoNormalizado . '_' . $safeMax . '_' . $safeStart);
 
-            if ($this->apiKey) {
-                $params['key'] = $this->apiKey;
-            }
+        if (Cache::has($cacheKey)) {
+            return Cache::get($cacheKey);
+        }
 
-            try {
-                $response = Http::timeout($this->timeout)->retry(2, 200)->get("{$this->baseUrl}/volumes", $params);
+        $params = [
+            'q' => $cleanQuery,
+            'maxResults' => $safeMax,
+        ];
+
+        if ($safeStart > 0) {
+            $params['startIndex'] = $safeStart;
+        }
+
+        if ($this->apiKey) {
+            $params['key'] = $this->apiKey;
+        }
+
+        try {
+            $response = Http::timeout(15)->get("{$this->baseUrl}/volumes", $params);
 
             if (!$response->successful()) {
                 Log::warning('Google Books API retornou erro HTTP', [
@@ -57,6 +68,7 @@ class GoogleBooksService
                 return [
                     'total' => 0,
                     'items' => [],
+                    'erro' => 'A Google Books API respondeu com erro (' . $response->status() . ').',
                 ];
             }
 
@@ -74,19 +86,43 @@ class GoogleBooksService
                 }
             }
 
-            return [
-                    'total' => $total,
-                    'items' => $normalizedItems,
-                ];
-            } catch (Throwable $e) {
-                Log::error('Exceção ao comunicar com a Google Books API: ' . $e->getMessage());
+            if ($tipoNormalizado !== 'geral') {
+                $termoFiltro = mb_strtolower(Str::ascii($cleanQuery));
+                $filtrados = array_values(array_filter($normalizedItems, function ($book) use ($tipoNormalizado, $termoFiltro) {
+                    return match ($tipoNormalizado) {
+                        'titulo' => str_contains(mb_strtolower(Str::ascii($book['nome'])), $termoFiltro),
+                        'autor' => collect($book['autores'])->contains(fn($a) => str_contains(mb_strtolower(Str::ascii((string)$a)), $termoFiltro)),
+                        'isbn' => !empty($book['isbn']) && str_contains(preg_replace('/[^0-9xX]/', '', (string)$book['isbn']), preg_replace('/[^0-9xX]/', '', $termoFiltro)),
+                        'editora' => str_contains(mb_strtolower(Str::ascii($book['editora'])), $termoFiltro),
+                        default => true,
+                    };
+                }));
 
-                return [
-                    'total' => 0,
-                    'items' => [],
-                ];
+                if (!empty($filtrados)) {
+                    $normalizedItems = $filtrados;
+                }
             }
-        });
+
+            $resultado = [
+                'total' => $total,
+                'items' => $normalizedItems,
+                'erro' => null,
+            ];
+
+            if ($total > 0 && count($normalizedItems) > 0) {
+                Cache::put($cacheKey, $resultado, now()->addMinutes(30));
+            }
+
+            return $resultado;
+        } catch (Throwable $e) {
+            Log::error('Exceção ao comunicar com a Google Books API: ' . $e->getMessage());
+
+            return [
+                'total' => 0,
+                'items' => [],
+                'erro' => 'Falha de comunicação com a Google Books API (' . $e->getMessage() . ').',
+            ];
+        }
     }
 
     public function findVolume(string $volumeId): ?array
@@ -103,7 +139,7 @@ class GoogleBooksService
         }
 
         try {
-            $response = Http::timeout($this->timeout)->get("{$this->baseUrl}/volumes/{$cleanId}", $params);
+            $response = Http::timeout(15)->get("{$this->baseUrl}/volumes/{$cleanId}", $params);
 
             if (!$response->successful()) {
                 return null;

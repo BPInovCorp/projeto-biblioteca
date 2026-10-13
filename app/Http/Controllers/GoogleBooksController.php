@@ -22,9 +22,14 @@ class GoogleBooksController extends Controller
     {
         return view('livros.import', [
             'query' => '',
+            'tipo' => 'geral',
+            'page' => 1,
+            'totalPages' => 0,
+            'totalpages' => 0,
             'items' => [],
             'total' => 0,
             'pesquisado' => false,
+            'erro' => null,
         ]);
     }
 
@@ -32,10 +37,19 @@ class GoogleBooksController extends Controller
     {
         $validated = $request->validate([
             'query' => ['required', 'string', 'min:2', 'max:255'],
+            'tipo' => ['nullable', 'string', 'in:geral,titulo,autor,isbn,editora'],
+            'page' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $query = trim($validated['query']);
-        $resultado = $googleBooks->search($query, 30);
+        $tipo = $validated['tipo'] ?? 'geral';
+        $page = (int) ($validated['page'] ?? 1);
+        $perPage = 12;
+        $startIndex = ($page - 1) * $perPage;
+
+        $resultado = $googleBooks->search($query, $tipo, $perPage, $startIndex);
+        $total = (int) ($resultado['total'] ?? 0);
+        $totalPages = $total > 0 ? (int) min(50, ceil($total / $perPage)) : 0;
 
         $livrosLocais = Livro::all();
 
@@ -75,9 +89,14 @@ class GoogleBooksController extends Controller
 
         return view('livros.import', [
             'query' => $query,
+            'tipo' => $tipo,
+            'page' => $page,
+            'totalPages' => $totalPages,
+            'totalpages' => $totalPages,
             'items' => $itemsComStatus,
-            'total' => $resultado['total'],
+            'total' => $total,
             'pesquisado' => true,
+            'erro' => $resultado['erro'] ?? null,
         ]);
     }
 
