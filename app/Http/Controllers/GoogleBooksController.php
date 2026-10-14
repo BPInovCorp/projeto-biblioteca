@@ -189,6 +189,96 @@ class GoogleBooksController extends Controller
         });
     }
 
+    public function sincronizar(Livro $livro, GoogleBooksService $googleBooks): RedirectResponse
+    {
+        $itemEncontrado = null;
+
+        $isbnLimpo = preg_replace('/[^0-9xX]/', '', (string)$livro->isbn);
+        if (!empty($isbnLimpo) && !Str::startsWith((string)$livro->isbn, 'SEM-ISBN-')) {
+            $buscaIsbn = $googleBooks->search($isbnLimpo, 'isbn', 5);
+            if (!empty($buscaIsbn['items'])) {
+                $itemEncontrado = $buscaIsbn['items'][0];
+            }
+        }
+
+        if (!$itemEncontrado && !empty($livro->nome)) {
+            $buscaTitulo = $googleBooks->search($livro->nome, 'titulo', 5);
+            if (!empty($buscaTitulo['items'])) {
+                $itemEncontrado = $buscaTitulo['items'][0];
+            }
+        }
+
+        if (!$itemEncontrado && !empty($livro->nome)) {
+            $buscaGeral = $googleBooks->search($livro->nome, 'geral', 5);
+            if (!empty($buscaGeral['items'])) {
+                $itemEncontrado = $buscaGeral['items'][0];
+            }
+        }
+
+        if (!$itemEncontrado) {
+            return redirect()->back()->with('error', __('Nenhuma correspondência encontrada na Google Books para este livro.'));
+        }
+
+        DB::transaction(function () use ($livro, $itemEncontrado) {
+            if (empty($livro->bibliografia) && !empty($itemEncontrado['bibliografia'])) {
+                $livro->bibliografia = $itemEncontrado['bibliografia'];
+            }
+
+            if (empty($livro->imagem_capa) && !empty($itemEncontrado['imagem_capa'])) {
+                $livro->imagem_capa = $itemEncontrado['imagem_capa'];
+            }
+
+            if (Str::startsWith((string)$livro->isbn, 'SEM-ISBN-') && !empty($itemEncontrado['isbn'])) {
+                $livro->isbn = $itemEncontrado['isbn'];
+            }
+
+            $editoraAtualNome = optional($livro->editora)->nome;
+            if (empty($editoraAtualNome) || $editoraAtualNome === 'Editora Desconhecida') {
+                $novaEditoraNome = trim((string)($itemEncontrado['editora'] ?? '')) ?: 'Editora Desconhecida';
+                $todasEditoras = Editora::all();
+                $editora = $this->encontrarEditora($novaEditoraNome, $todasEditoras);
+
+                if (!$editora) {
+                    $editora = Editora::create([
+                        'nome' => $novaEditoraNome,
+                        'logotipo' => null,
+                    ]);
+                }
+                $livro->editora_id = $editora->id;
+            }
+
+            if ($livro->autores->isEmpty() || ($livro->autores->count() === 1 && $livro->autores->first()->nome === 'Autor Desconhecido')) {
+                $autoresNomes = (array) ($itemEncontrado['autores'] ?? []);
+                if (!empty($autoresNomes)) {
+                    $autoresIds = [];
+                    $todosAutores = Autor::all();
+                    foreach ($autoresNomes as $nomeAutor) {
+                        $nomeLimpo = trim((string) $nomeAutor);
+                        if ($nomeLimpo === '') {
+                            continue;
+                        }
+                        $autor = $this->encontrarAutor($nomeLimpo, $todosAutores);
+                        if (!$autor) {
+                            $autor = Autor::create([
+                                'nome' => $nomeLimpo,
+                                'foto' => null,
+                            ]);
+                            $todosAutores->push($autor);
+                        }
+                        $autoresIds[] = $autor->id;
+                    }
+                    if (!empty($autoresIds)) {
+                        $livro->autores()->sync($autoresIds);
+                    }
+                }
+            }
+
+            $livro->save();
+        });
+
+        return redirect()->back()->with('success', __('Metadados do livro ":nome" sincronizados com sucesso a partir da Google Books.', ['nome' => $livro->nome]));
+    }
+
     protected function normalizarParaComparacao(string $texto): string
     {
         $limpo = Str::ascii($texto);

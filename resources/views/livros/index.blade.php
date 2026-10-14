@@ -137,9 +137,15 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
-                                        <div class="flex justify-end gap-2">
-                                            <a href="{{ route('livros.edit', $livro->id) }}" class="btn btn-xs btn-outline">Editar</a>
-                                            <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('livros.destroy', $livro->id) }}" data-nome="o livro {{ $livro->nome }}" onclick="confirmarEliminacao(this)">Eliminar</button>
+                                        <div class="flex justify-end gap-1.5 sm:gap-2">
+                                            <form method="POST" action="{{ route('livros.sincronizar', $livro->id) }}" class="inline">
+                                                @csrf
+                                                <button type="submit" class="btn btn-xs btn-outline btn-info" title="{{ __('Sincronizar metadados com a Google') }}">
+                                                    Sincronizar
+                                                </button>
+                                            </form>
+                                            <a href="{{ route('livros.edit', $livro->id) }}" class="btn btn-xs btn-outline">{{ __('Editar') }}</a>
+                                            <button type="button" class="btn btn-xs btn-outline btn-error" data-url="{{ route('livros.destroy', $livro->id) }}" data-nome="o livro {{ $livro->nome }}" onclick="confirmarEliminacao(this)">{{ __('Eliminar') }}</button>
                                         </div>
                                     </td>
                                 </tr>

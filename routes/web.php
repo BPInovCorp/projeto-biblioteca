@@ -113,5 +113,6 @@ Route::middleware([
         Route::get('admin/livros/importar', [GoogleBooksController::class, 'index'])->name('livros.importar');
         Route::get('admin/livros/importar/pesquisar', [GoogleBooksController::class, 'search'])->name('livros.importar.search');
         Route::post('admin/livros/importar', [GoogleBooksController::class, 'store'])->name('livros.importar.store');
+        Route::post('admin/livros/{livro}/sincronizar', [GoogleBooksController::class, 'sincronizar'])->name('livros.sincronizar');
     });
 });
