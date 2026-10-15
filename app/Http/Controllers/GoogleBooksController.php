@@ -51,38 +51,23 @@ class GoogleBooksController extends Controller
         $total = (int) ($resultado['total'] ?? 0);
         $totalPages = $total > 0 ? (int) min(50, ceil($total / $perPage)) : 0;
 
-        $livrosLocais = Livro::all();
-
-        $isbnsLocais = $livrosLocais->pluck('isbn')
-            ->filter()
-            ->map(fn($isbn) => preg_replace('/[^0-9xX]/', '', (string) $isbn))
-            ->values()
-            ->all();
-
-        $titulosLocais = $livrosLocais->pluck('nome')
-            ->filter()
-            ->map(fn($nome) => trim(mb_strtolower((string) $nome)))
-            ->values()
-            ->all();
-
-        $itemsComStatus = array_map(function ($item) use ($isbnsLocais, $titulosLocais) {
-            $jaExiste = false;
-
+        $hashesPesquisados = [];
+        foreach ($resultado['items'] as $item) {
             if (!empty($item['isbn'])) {
-                $cleanIsbn = preg_replace('/[^0-9xX]/', '', (string) $item['isbn']);
-                if (in_array($cleanIsbn, $isbnsLocais, true)) {
-                    $jaExiste = true;
+                $hash = Livro::hashIsbn($item['isbn']);
+                if ($hash) {
+                    $hashesPesquisados[] = $hash;
                 }
             }
+        }
 
-            if (!$jaExiste && !empty($item['nome'])) {
-                $cleanTitulo = trim(mb_strtolower((string) $item['nome']));
-                if (in_array($cleanTitulo, $titulosLocais, true)) {
-                    $jaExiste = true;
-                }
-            }
+        $hashesExistentes = !empty($hashesPesquisados)
+            ? Livro::whereIn('isbn_hash', array_unique($hashesPesquisados))->pluck('isbn_hash')->all()
+            : [];
 
-            $item['ja_no_acervo'] = $jaExiste;
+        $itemsComStatus = array_map(function ($item) use ($hashesExistentes) {
+            $hash = !empty($item['isbn']) ? Livro::hashIsbn($item['isbn']) : null;
+            $item['ja_no_acervo'] = $hash && in_array($hash, $hashesExistentes, true);
 
             return $item;
         }, $resultado['items']);
@@ -112,15 +97,9 @@ class GoogleBooksController extends Controller
             'preco' => ['nullable', 'numeric', 'min:0'],
         ]);
 
-        $livrosLocais = Livro::all();
-
         if (!empty($validated['isbn'])) {
-            $cleanIsbn = preg_replace('/[^0-9xX]/', '', (string) $validated['isbn']);
-            $existeIsbn = $livrosLocais->first(function ($l) use ($cleanIsbn) {
-                return preg_replace('/[^0-9xX]/', '', (string) $l->isbn) === $cleanIsbn;
-            });
-
-            if ($existeIsbn) {
+            $hashIsbn = Livro::hashIsbn($validated['isbn']);
+            if ($hashIsbn && Livro::where('isbn_hash', $hashIsbn)->exists()) {
                 return redirect()->back()->with('error', __('Esta obra já se encontra registada no acervo da biblioteca.'));
             }
         }
@@ -179,6 +158,7 @@ class GoogleBooksController extends Controller
                 'bibliografia' => $validated['bibliografia'] ?? null,
                 'imagem_capa' => $capaFinal,
                 'preco' => $preco,
+                'origem' => 'google',
             ]);
 
             if (!empty($autoresIds)) {

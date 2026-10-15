@@ -21,6 +21,8 @@ class Livro extends Model
         'bibliografia',
         'imagem_capa',
         'preco',
+        'origem',
+        'isbn_hash',
     ];
 
     protected $casts = [
@@ -53,5 +55,27 @@ class Livro extends Model
         }
 
         return !$this->requisicoes()->where('status', 'ativa')->exists();
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (Livro $livro) {
+            $livro->isbn_hash = static::hashIsbn($livro->isbn);
+        });
+    }
+
+    public static function hashIsbn(?string $isbn): ?string
+    {
+        if (empty($isbn)) {
+            return null;
+        }
+
+        $limpo = preg_replace('/[^0-9xX]/', '', (string) $isbn);
+
+        if (empty($limpo)) {
+            return null;
+        }
+
+        return hash_hmac('sha256', $limpo, (string) config('app.key'));
     }
 }

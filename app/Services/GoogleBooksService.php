@@ -18,7 +18,7 @@ class GoogleBooksService
     {
         $this->baseUrl = (string) config('services.google_books.base_url', 'https://www.googleapis.com/books/v1');
         $this->apiKey = config('services.google_books.api_key');
-        $this->timeout = (int) config('services.google_books.timeout', 10);
+        $this->timeout = (int) config('services.google_books.timeout', 15);
     }
 
     public function search(string $query, string $tipo = 'geral', int $maxResults = 12, int $startIndex = 0): array
@@ -57,7 +57,7 @@ class GoogleBooksService
         }
 
         try {
-            $response = Http::timeout(15)->get("{$this->baseUrl}/volumes", $params);
+            $response = Http::timeout($this->timeout)->get("{$this->baseUrl}/volumes", $params);
 
             if (!$response->successful()) {
                 Log::warning('Google Books API retornou erro HTTP', [
@@ -139,7 +139,7 @@ class GoogleBooksService
         }
 
         try {
-            $response = Http::timeout(15)->get("{$this->baseUrl}/volumes/{$cleanId}", $params);
+            $response = Http::timeout($this->timeout)->get("{$this->baseUrl}/volumes/{$cleanId}", $params);
 
             if (!$response->successful()) {
                 return null;

@@ -34,9 +34,7 @@ class LivrosExport implements FromCollection, WithHeadings, WithMapping
 
     public function map(mixed $livro): array
     {
-        $origem = (Str::startsWith((string) $livro->imagem_capa, ['http://', 'https://']) || Str::startsWith((string) $livro->isbn, 'SEM-ISBN-'))
-            ? 'Google Books'
-            : 'Acervo Local';
+        $origem = $livro->origem === 'google' ? 'Google Books' : 'Acervo Local';
 
         $precoFormatado = is_numeric($livro->preco)
             ? number_format((float) $livro->preco, 2, ',', '.') . ' €'
