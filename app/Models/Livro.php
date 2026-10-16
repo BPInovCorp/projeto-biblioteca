@@ -48,6 +48,11 @@ class Livro extends Model
         return $this->hasMany(Requisicao::class);
     }
 
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(Comentario::class, 'livro_id');
+    }
+
     public function isDisponivel(): bool
     {
         if ($this->relationLoaded('requisicoes')) {

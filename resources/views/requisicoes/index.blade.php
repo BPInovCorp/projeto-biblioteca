@@ -176,7 +176,29 @@
                                                     </button>
                                                 @endif
 
-                                                @if($requisicao->status !== 'ativa')
+                                                @if($requisicao->status === 'entregue')
+                                                    @if($requisicao->comentario)
+                                                        @if($requisicao->comentario->status === 'suspenso')
+                                                            <span class="badge badge-warning text-stone-900 font-bold badge-xs">
+                                                                ⏳ {{ __('avaliação pendente') }}
+                                                            </span>
+                                                        @elseif($requisicao->comentario->status === 'ativo')
+                                                            <span class="badge badge-success text-white font-bold badge-xs">
+                                                                ⭐ {{ $requisicao->comentario->classificacao }}/5 ({{ __('aprovada') }})
+                                                            </span>
+                                                        @else
+                                                            <span class="badge badge-error text-white font-bold badge-xs">
+                                                                ✕ {{ __('recusada') }}
+                                                            </span>
+                                                        @endif
+                                                    @elseif(auth()->id() === $requisicao->user_id)
+                                                        <button type="button" class="btn btn-warning btn-xs text-stone-900 font-bold shadow-sm" onclick="abrirmodalcriarreview(this)" data-requisicao-id="{{ $requisicao->id }}" data-livro-titulo="{{ $requisicao->livro->nome }}">
+                                                            ⭐ {{ __('avaliar livro') }}
+                                                        </button>
+                                                    @else
+                                                        <span class="text-xs text-base-content/50">—</span>
+                                                    @endif
+                                                @elseif($requisicao->status === 'cancelada')
                                                     <span class="text-xs text-base-content/50">—</span>
                                                 @endif
                                             </div>
@@ -404,6 +426,74 @@
 
             const modal = document.getElementById('modal-detalhes-cidadao');
             if (modal) modal.showModal();
+        };
+    </script>
+<dialog id="modal-criar-review" class="modal">
+        <div class="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+            </form>
+
+            <h3 class="font-bold text-lg text-amber-950 border-b border-base-200 pb-2 flex items-center gap-2">
+                <span>⭐</span> {{ __('avaliar obra requisitada') }}
+            </h3>
+
+            <p class="text-xs text-base-content/70 mt-2">
+                {{ __('partilhe a sua opinião crítica sobre a obra lida. a avaliação ficará visível publicamente após validação.') }}
+            </p>
+
+            <div class="bg-base-200/60 p-3 rounded-lg border border-base-300 mt-3">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-base-content/60">{{ __('obra') }}</span>
+                <p id="review-livro-titulo" class="font-bold text-sm text-base-content leading-tight mt-0.5"></p>
+            </div>
+
+            <form id="form-criar-review" method="post" action="{{ route('comentarios.store') }}" class="mt-4 flex flex-col gap-4">
+                @csrf
+                <input type="hidden" name="requisicao_id" id="review-requisicao-id" value="">
+
+                <div class="form-control w-full">
+                    <label class="label py-1" for="select-classificacao">
+                        <span class="label-text font-bold text-xs text-base-content">{{ __('classificação (1 a 5 estrelas)') }}</span>
+                    </label>
+                    <select name="classificacao" id="select-classificacao" required class="select select-bordered select-sm w-full font-bold text-xs">
+                        <option value="5">⭐⭐⭐⭐⭐ (5 / 5 - excelente)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 / 5 - muito bom)</option>
+                        <option value="3">⭐⭐⭐ (3 / 5 - bom)</option>
+                        <option value="2">⭐⭐ (2 / 5 - suficiente)</option>
+                        <option value="1">⭐ (1 / 5 - fraco)</option>
+                    </select>
+                </div>
+
+                <div class="form-control w-full">
+                    <label class="label py-1" for="textarea-comentario">
+                        <span class="label-text font-bold text-xs text-base-content">{{ __('o seu comentário / crítica literária') }}</span>
+                    </label>
+                    <textarea name="comentario" id="textarea-comentario" required minlength="5" maxlength="1000" rows="4" placeholder="{{ __('escreva aqui a sua opinião sobre a narrativa, personagens ou escrita...') }}" class="textarea textarea-bordered w-full text-xs sm:text-sm leading-relaxed"></textarea>
+                </div>
+
+                <div class="modal-action border-t border-base-200 pt-3 mt-2 flex justify-end gap-2">
+                    <button type="button" onclick="document.getelementbyid('modal-criar-review').close()" class="btn btn-ghost btn-sm">
+                        {{ __('cancelar') }}
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm font-bold shadow-md">
+                        {{ __('submeter avaliação') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>{{ __('fechar') }}</button>
+        </form>
+    </dialog>
+
+    <script>
+        window.abrirmodalcriarreview = function(botao) {
+            const reqid = document.getelementbyid('review-requisicao-id');
+            if (reqid) reqid.value = botao.dataset.requisicaoid;
+            const titulo = document.getelementbyid('review-livro-titulo');
+            if (titulo) titulo.textcontent = botao.dataset.livrotitulo;
+            const modal = document.getelementbyid('modal-criar-review');
+            if (modal) modal.showmodal();
         };
     </script>
 </x-app-layout>

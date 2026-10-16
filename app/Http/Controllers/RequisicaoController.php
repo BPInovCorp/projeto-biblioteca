@@ -21,7 +21,7 @@ class RequisicaoController extends Controller
     {
         $user = $request->user();
 
-        $query = Requisicao::with(['user.requisicoes.livro', 'livro'])->latest('id');
+        $query = Requisicao::with(['user.requisicoes.livro', 'livro', 'comentario'])->latest('id');
 
         if (!$user->isAdmin()) {
             $query->where('user_id', $user->id);

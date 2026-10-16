@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Requisicao extends Model
 {
@@ -41,6 +42,11 @@ class Requisicao extends Model
     public function livro(): BelongsTo
     {
         return $this->belongsTo(Livro::class);
+    }
+
+    public function comentario(): HasOne
+    {
+        return $this->hasOne(Comentario::class, 'requisicao_id');
     }
 
     public function scopeAtivas(Builder $query): Builder

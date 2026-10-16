@@ -82,4 +82,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Requisicao::class);
     }
+
+    public function comentarios(): HasMany
+    {
+        return $this->hasMany(Comentario::class, 'user_id');
+    }
 }

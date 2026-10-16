@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AutorController;
+use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\EditoraController;
 use App\Http\Controllers\GoogleBooksController;
 use App\Http\Controllers\LivroController;
@@ -101,6 +102,7 @@ Route::middleware([
     Route::get('/requisicoes', [RequisicaoController::class, 'index'])->name('requisicoes.index');
     Route::post('/requisicoes', [RequisicaoController::class, 'store'])->name('requisicoes.store');
     Route::post('/requisicoes/{requisicao}/cancelar', [RequisicaoController::class, 'cancelar'])->name('requisicoes.cancelar');
+    Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);
