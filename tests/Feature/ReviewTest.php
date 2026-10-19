@@ -2,6 +2,8 @@
 
 namespace Tests\Feature;
 
+use App\Mail\EstadoComentarioCidadaoMail;
+use App\Mail\NovoComentarioAdminMail;
 use App\Models\Comentario;
 use App\Models\Editora;
 use App\Models\Livro;
@@ -9,11 +11,22 @@ use App\Models\Requisicao;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Tests\TestCase;
 
 class ReviewTest extends TestCase
 {
     use RefreshDatabase;
+
+    private function criarAdmin(string $email = 'admin@teste.pt'): User
+    {
+        return User::forceCreate([
+            'name' => 'Admin Teste',
+            'email' => $email,
+            'password' => Hash::make('password'),
+            'role' => 'admin',
+        ]);
+    }
 
     private function criarCidadao(string $email = 'cidadao@teste.pt'): User
     {
@@ -182,5 +195,194 @@ class ReviewTest extends TestCase
         $responseComentarioCurto->assertSessionHasErrors('comentario');
 
         $this->assertEquals(0, Comentario::count());
+    }
+
+    public function test_submissao_de_review_envia_email_de_alerta_aos_administradores(): void
+    {
+        Mail::fake();
+
+        $admin1 = $this->criarAdmin('admin1@teste.pt');
+        $admin2 = $this->criarAdmin('admin2@teste.pt');
+        $cidadao = $this->criarCidadao();
+        $livro = $this->criarLivro();
+        $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
+
+        $this->actingAs($cidadao)->post(route('comentarios.store'), [
+            'requisicao_id' => $requisicao->id,
+            'classificacao' => 5,
+            'comentario' => 'Obra marcante, excelente recomendação.',
+        ]);
+
+        Mail::assertSent(NovoComentarioAdminMail::class, 2);
+    }
+
+    public function test_apenas_admin_pode_aceder_ao_painel_de_moderacao(): void
+    {
+        $this->get(route('admin.comentarios.index'))->assertRedirect('/login');
+
+        $cidadao = $this->criarCidadao();
+        $this->actingAs($cidadao)->get(route('admin.comentarios.index'))->assertStatus(403);
+
+        $this->flushSession();
+
+        $admin = $this->criarAdmin();
+        $this->actingAs($admin)->get(route('admin.comentarios.index'))->assertOk();
+    }
+
+    public function test_admin_pode_aprovar_review_e_dispara_email_ao_cidadao(): void
+    {
+        Mail::fake();
+
+        $admin = $this->criarAdmin();
+        $cidadao = $this->criarCidadao();
+        $livro = $this->criarLivro();
+        $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
+
+        $comentario = Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $requisicao->id,
+            'classificacao' => 5,
+            'comentario' => 'Leitura extraordinária.',
+            'status' => 'suspenso',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.comentarios.aprovar', $comentario));
+        $response->assertSessionHas('status');
+
+        $comentario->refresh();
+        $this->assertEquals('ativo', $comentario->status);
+        $this->assertNull($comentario->justificacao);
+
+        Mail::assertSent(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
+            return $mail->hasTo($cidadao->email) && $mail->comentario->status === 'ativo';
+        });
+    }
+
+    public function test_admin_pode_recusar_review_com_justificacao_obrigatoria_e_dispara_email(): void
+    {
+        Mail::fake();
+
+        $admin = $this->criarAdmin();
+        $cidadao = $this->criarCidadao();
+        $livro = $this->criarLivro();
+        $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
+
+        $comentario = Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $requisicao->id,
+            'classificacao' => 1,
+            'comentario' => 'Texto desapropriado para teste.',
+            'status' => 'suspenso',
+        ]);
+
+        $responseSemJustificacao = $this->actingAs($admin)->post(route('admin.comentarios.recusar', $comentario), [
+            'justificacao' => '',
+        ]);
+        $responseSemJustificacao->assertSessionHasErrors('justificacao');
+
+        $responseComJustificacao = $this->actingAs($admin)->post(route('admin.comentarios.recusar', $comentario), [
+            'justificacao' => 'O comentário viola as normas de respeito comunitário.',
+        ]);
+        $responseComJustificacao->assertSessionHas('status');
+
+        $comentario->refresh();
+        $this->assertEquals('recusado', $comentario->status);
+        $this->assertEquals('O comentário viola as normas de respeito comunitário.', $comentario->justificacao);
+
+        Mail::assertSent(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
+            return $mail->hasTo($cidadao->email) && $mail->comentario->status === 'recusado';
+        });
+    }
+
+    public function test_nao_e_possivel_re_moderar_review_ja_processada(): void
+    {
+        $admin = $this->criarAdmin();
+        $cidadao = $this->criarCidadao();
+        $livro = $this->criarLivro();
+        $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
+
+        $comentario = Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $requisicao->id,
+            'classificacao' => 5,
+            'comentario' => 'Avaliação já aprovada.',
+            'status' => 'ativo',
+        ]);
+
+        $response = $this->actingAs($admin)->post(route('admin.comentarios.aprovar', $comentario));
+        $response->assertSessionHas('error');
+
+        $responseRecusar = $this->actingAs($admin)->post(route('admin.comentarios.recusar', $comentario), [
+            'justificacao' => 'Tentativa indevida de recusar.',
+        ]);
+        $responseRecusar->assertSessionHas('error');
+    }
+
+    public function test_apenas_reviews_ativas_sao_apresentadas_no_catalogo_publico(): void
+    {
+        $cidadao = $this->criarCidadao();
+        $livro = $this->criarLivro('Livro Com Reviews');
+
+        $req1 = $this->criarRequisicao($cidadao, $livro, 'entregue');
+        $req2 = Requisicao::create([
+            'numero_sequencial' => 2,
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'foto_cidadao' => $cidadao->profile_photo_url,
+            'data_requisicao' => now()->subDays(10)->toDateString(),
+            'data_fim_prevista' => now()->subDays(5)->toDateString(),
+            'data_devolucao' => now()->subDays(5)->toDateString(),
+            'dias_decorridos' => 5,
+            'status' => 'entregue',
+        ]);
+        $req3 = Requisicao::create([
+            'numero_sequencial' => 3,
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'foto_cidadao' => $cidadao->profile_photo_url,
+            'data_requisicao' => now()->subDays(15)->toDateString(),
+            'data_fim_prevista' => now()->subDays(10)->toDateString(),
+            'data_devolucao' => now()->subDays(10)->toDateString(),
+            'dias_decorridos' => 5,
+            'status' => 'entregue',
+        ]);
+
+        Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $req1->id,
+            'classificacao' => 5,
+            'comentario' => 'Review Ativa Visivel Publicamente',
+            'status' => 'ativo',
+        ]);
+
+        Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $req2->id,
+            'classificacao' => 4,
+            'comentario' => 'Review Suspensa Totalmente Oculta',
+            'status' => 'suspenso',
+        ]);
+
+        Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $req3->id,
+            'classificacao' => 1,
+            'comentario' => 'Review Recusada Totalmente Oculta',
+            'status' => 'recusado',
+            'justificacao' => 'Spam',
+        ]);
+
+        $response = $this->get('/');
+        $response->assertOk();
+
+        $response->assertSee('Review Ativa Visivel Publicamente');
+        $response->assertDontSee('Review Suspensa Totalmente Oculta');
+        $response->assertDontSee('Review Recusada Totalmente Oculta');
     }
 }

@@ -47,9 +47,16 @@
                     <div class="stat-value text-accent font-serif font-black">{{ \App\Models\Editora::count() }}</div>
                     <div class="stat-desc text-xs opacity-70">Certificações editoriais</div>
                 </div>
+
+                <div class="stat">
+                    <div class="stat-figure text-warning text-3xl">⏳</div>
+                    <div class="stat-title font-semibold text-xs uppercase tracking-wider">{{ __('Avaliações Pendentes') }}</div>
+                    <div class="stat-value text-warning font-serif font-black">{{ \App\Models\Comentario::where('status', 'suspenso')->count() }}</div>
+                    <div class="stat-desc text-xs opacity-70">{{ __('A aguardar moderação') }}</div>
+                </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
                     <div class="card-body p-6 flex flex-col justify-between">
                         <div>
@@ -96,6 +103,23 @@
                         <div class="card-actions justify-end mt-6">
                             <a href="{{ route('editoras.index') }}" class="btn btn-primary btn-sm w-full">
                                 Gerir Editoras
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
+                    <div class="card-body p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="text-3xl mb-2">⭐</div>
+                            <h2 class="card-title text-xl font-bold">{{ __('Avaliações') }}</h2>
+                            <p class="text-xs opacity-80 mt-1">
+                                {{ __('Triagem, aprovação e recusa justificada de críticas literárias dos cidadãos.') }}
+                            </p>
+                        </div>
+                        <div class="card-actions justify-end mt-6">
+                            <a href="{{ route('admin.comentarios.index') }}" class="btn btn-primary btn-sm w-full">
+                                {{ __('Moderar Avaliações') }}
                             </a>
                         </div>
                     </div>

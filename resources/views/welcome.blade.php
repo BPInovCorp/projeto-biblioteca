@@ -247,6 +247,13 @@
                                             'devolucao' => $r->data_devolucao ? $r->data_devolucao->format('d/m/Y') : null,
                                             'status' => $r->status,
                                         ])->values();
+
+                                        $avaliacoesData = $livro->comentarios->where('status', 'ativo')->take(10)->map(fn($c) => [
+                                            'nome' => optional($c->user)->name ?? 'Leitor',
+                                            'estrelas' => (int) $c->classificacao,
+                                            'comentario' => $c->comentario,
+                                            'data' => $c->created_at->format('d/m/Y'),
+                                        ])->values();
                                     @endphp
                                     <div class="lombada-livro group relative h-[390px] sm:h-[420px] w-16 sm:w-18 md:w-20 rounded-r-sm rounded-l-xs shadow-xl hover:-translate-y-6 hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col justify-between p-2 sm:p-2.5 border-l-4 border-r-2 border-t border-b overflow-hidden select-none {{ $estilosLombadas[$loop->index % count($estilosLombadas)] }}"
                                          data-titulo="{{ $livro->nome }}"
@@ -261,6 +268,7 @@
                                          data-disponivel="{{ $livro->isDisponivel() ? '1' : '0' }}"
                                          data-id="{{ $livro->id }}"
                                          data-historico="{{ json_encode($historicoData) }}"
+                                         data-avaliacoes="{{ json_encode($avaliacoesData) }}"
                                          onclick="abrirLivroPorElemento(this)">
 
                                         <div class="flex justify-center w-full mb-1">
@@ -373,6 +381,20 @@
                                                 {{ __('Sem histórico de requisições registadas.') }}
                                             </div>
                                             <div id="modal-livro-historico-lista" class="flex flex-col gap-1 hidden"></div>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <div id="modal-livro-avaliacoes-bloco" class="mt-2 border-t border-[#c5ad82] pt-2">
+                                    <details class="collapse collapse-arrow bg-amber-100/70 border border-[#c5ad82] rounded-md after:!top-1/2 after:!-translate-y-1/2">
+                                        <summary class="collapse-title text-xs font-serif font-bold uppercase tracking-wider text-amber-950 py-2.5 min-h-0 cursor-pointer flex items-center gap-1 after:!top-[50%]">
+                                            <span>⭐</span> {{ __('Críticas dos Leitores') }} (<span id="modal-livro-avaliacoes-total">0</span>)
+                                        </summary>
+                                        <div class="collapse-content px-2 py-1 max-h-36 overflow-y-auto">
+                                            <div id="modal-livro-avaliacoes-vazio" class="text-xs text-neutral-600 italic py-1 text-center">
+                                                {{ __('Sem avaliações aprovadas até ao momento.') }}
+                                            </div>
+                                            <div id="modal-livro-avaliacoes-lista" class="flex flex-col gap-1.5 hidden"></div>
                                         </div>
                                     </details>
                                 </div>
@@ -574,6 +596,58 @@
                                     <span class="badge ${badgeClass} badge-xs font-bold">${badgeText}</span>
                                 `;
                                 listaContainer.appendChild(row);
+                            });
+                        }
+                    }
+
+                    const avaliacoes = JSON.parse(dados.avaliacoes || '[]');
+                    const totalAvaliacoesSpan = document.getElementById('modal-livro-avaliacoes-total');
+                    const listaAvaliacoes = document.getElementById('modal-livro-avaliacoes-lista');
+                    const vazioAvaliacoesMsg = document.getElementById('modal-livro-avaliacoes-vazio');
+
+                    if (totalAvaliacoesSpan) {
+                        totalAvaliacoesSpan.textContent = avaliacoes.length;
+                    }
+
+                    if (listaAvaliacoes && vazioAvaliacoesMsg) {
+                        listaAvaliacoes.innerHTML = '';
+                        if (avaliacoes.length === 0) {
+                            vazioAvaliacoesMsg.classList.remove('hidden');
+                            listaAvaliacoes.classList.add('hidden');
+                        } else {
+                            vazioAvaliacoesMsg.classList.add('hidden');
+                            listaAvaliacoes.classList.remove('hidden');
+                            avaliacoes.forEach(item => {
+                                const card = document.createElement('div');
+                                card.className = 'flex flex-col gap-0.5 p-2 bg-base-100/90 rounded border border-[#d8caa6] text-xs';
+
+                                const topRow = document.createElement('div');
+                                topRow.className = 'flex items-center justify-between';
+
+                                const nomeEl = document.createElement('span');
+                                nomeEl.className = 'font-bold text-base-content';
+                                nomeEl.textContent = item.nome;
+
+                                const estrelasEl = document.createElement('span');
+                                estrelasEl.className = 'text-amber-600 text-xs';
+                                estrelasEl.textContent = '⭐'.repeat(item.estrelas || 5);
+
+                                topRow.appendChild(nomeEl);
+                                topRow.appendChild(estrelasEl);
+
+                                const comentarioEl = document.createElement('p');
+                                comentarioEl.className = 'text-neutral-700 italic text-[11px] leading-relaxed text-justify';
+                                comentarioEl.textContent = '"' + item.comentario + '"';
+
+                                const dataEl = document.createElement('span');
+                                dataEl.className = 'text-[9px] text-neutral-500 font-mono text-right';
+                                dataEl.textContent = item.data;
+
+                                card.appendChild(topRow);
+                                card.appendChild(comentarioEl);
+                                card.appendChild(dataEl);
+
+                                listaAvaliacoes.appendChild(card);
                             });
                         }
                     }

@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AdminComentarioController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\ComentarioController;
@@ -116,5 +117,8 @@ Route::middleware([
         Route::get('admin/livros/importar/pesquisar', [GoogleBooksController::class, 'search'])->name('livros.importar.search');
         Route::post('admin/livros/importar', [GoogleBooksController::class, 'store'])->name('livros.importar.store');
         Route::post('admin/livros/{livro}/sincronizar', [GoogleBooksController::class, 'sincronizar'])->name('livros.sincronizar');
+        Route::get('admin/comentarios', [AdminComentarioController::class, 'index'])->name('admin.comentarios.index');
+        Route::post('admin/comentarios/{comentario}/aprovar', [AdminComentarioController::class, 'aprovar'])->name('admin.comentarios.aprovar');
+        Route::post('admin/comentarios/{comentario}/recusar', [AdminComentarioController::class, 'recusar'])->name('admin.comentarios.recusar');
     });
 });

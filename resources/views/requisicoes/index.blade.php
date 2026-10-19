@@ -179,15 +179,15 @@
                                                 @if($requisicao->status === 'entregue')
                                                     @if($requisicao->comentario)
                                                         @if($requisicao->comentario->status === 'suspenso')
-                                                            <span class="badge badge-warning text-stone-900 font-bold badge-xs">
+                                                            <span class="badge badge-warning text-stone-900 font-bold badge-sm whitespace-nowrap py-1 px-2.5 h-auto leading-tight text-[11px] shadow-sm">
                                                                 ⏳ {{ __('avaliação pendente') }}
                                                             </span>
                                                         @elseif($requisicao->comentario->status === 'ativo')
-                                                            <span class="badge badge-success text-white font-bold badge-xs">
+                                                            <span class="badge badge-success text-white font-bold badge-sm whitespace-nowrap py-1 px-2.5 h-auto leading-tight text-[11px] shadow-sm">
                                                                 ⭐ {{ $requisicao->comentario->classificacao }}/5 ({{ __('aprovada') }})
                                                             </span>
                                                         @else
-                                                            <span class="badge badge-error text-white font-bold badge-xs">
+                                                            <span class="badge badge-error text-white font-bold badge-sm whitespace-nowrap py-1 px-2.5 h-auto leading-tight text-[11px] shadow-sm">
                                                                 ✕ {{ __('recusada') }}
                                                             </span>
                                                         @endif
@@ -361,14 +361,72 @@
         </dialog>
     @endif
 
+    <dialog id="modal-criar-review" class="modal">
+        <div class="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
+            <form method="dialog">
+                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
+            </form>
+
+            <h3 class="font-bold text-lg text-amber-950 border-b border-base-200 pb-2 flex items-center gap-2">
+                <span>⭐</span> {{ __('Avaliar Obra Requisitada') }}
+            </h3>
+
+            <p class="text-xs text-base-content/70 mt-2">
+                {{ __('Partilhe a sua opinião crítica sobre a obra lida. A avaliação ficará visível publicamente após validação.') }}
+            </p>
+
+            <div class="bg-base-200/60 p-3 rounded-lg border border-base-300 mt-3">
+                <span class="text-[11px] font-bold uppercase tracking-wider text-base-content/60">{{ __('Obra') }}</span>
+                <p id="review-livro-titulo" class="font-bold text-sm text-base-content leading-tight mt-0.5"></p>
+            </div>
+
+            <form id="form-criar-review" method="POST" action="{{ route('comentarios.store') }}" class="mt-4 flex flex-col gap-4">
+                @csrf
+                <input type="hidden" name="requisicao_id" id="review-requisicao-id" value="">
+
+                <div class="form-control w-full">
+                    <label class="label py-1" for="select-classificacao">
+                        <span class="label-text font-bold text-xs text-base-content">{{ __('Classificação (1 a 5 estrelas)') }}</span>
+                    </label>
+                    <select name="classificacao" id="select-classificacao" required class="select select-bordered select-sm w-full font-bold text-xs">
+                        <option value="5">⭐⭐⭐⭐⭐ (5 / 5 - Excelente)</option>
+                        <option value="4">⭐⭐⭐⭐ (4 / 5 - Muito Bom)</option>
+                        <option value="3">⭐⭐⭐ (3 / 5 - Bom)</option>
+                        <option value="2">⭐⭐ (2 / 5 - Suficiente)</option>
+                        <option value="1">⭐ (1 / 5 - Fraco)</option>
+                    </select>
+                </div>
+
+                <div class="form-control w-full">
+                    <label class="label py-1" for="textarea-comentario">
+                        <span class="label-text font-bold text-xs text-base-content">{{ __('O seu Comentário / Crítica Literária') }}</span>
+                    </label>
+                    <textarea name="comentario" id="textarea-comentario" required minlength="5" maxlength="1000" rows="4" placeholder="{{ __('Escreva aqui a sua opinião sobre a narrativa, personagens ou escrita...') }}" class="textarea textarea-bordered w-full text-xs sm:text-sm leading-relaxed"></textarea>
+                </div>
+
+                <div class="modal-action border-t border-base-200 pt-3 mt-2 flex justify-end gap-2">
+                    <button type="button" onclick="document.getElementById('modal-criar-review').close()" class="btn btn-ghost btn-sm">
+                        {{ __('Cancelar') }}
+                    </button>
+                    <button type="submit" class="btn btn-primary btn-sm font-bold shadow-md">
+                        {{ __('Submeter Avaliação') }}
+                    </button>
+                </div>
+            </form>
+        </div>
+        <form method="dialog" class="modal-backdrop">
+            <button>{{ __('Fechar') }}</button>
+        </form>
+    </dialog>
+
     <script>
         window.abrirModalCancelamento = function(botao) {
             const form = document.getElementById('form-confirmar-cancelamento');
             if (form) form.action = botao.dataset.url;
             const seq = document.getElementById('cancelar-numero-sequencial');
-            if (seq) seq.textContent = '#' + botao.dataset.numero;
+            if (seq) seq.textContent = '#' + (botao.dataset.numero || '');
             const tit = document.getElementById('cancelar-livro-titulo');
-            if (tit) tit.textContent = botao.dataset.titulo;
+            if (tit) tit.textContent = botao.dataset.titulo || '';
             const modal = document.getElementById('modal-confirmar-cancelamento');
             if (modal) modal.showModal();
         };
@@ -377,22 +435,22 @@
             const form = document.getElementById('form-confirmar-devolucao');
             if (form) form.action = botao.dataset.url;
             const seq = document.getElementById('devolucao-numero-sequencial');
-            if (seq) seq.textContent = '#' + botao.dataset.numero;
+            if (seq) seq.textContent = '#' + (botao.dataset.numero || '');
             const tit = document.getElementById('devolucao-livro-titulo');
-            if (tit) tit.textContent = botao.dataset.titulo;
+            if (tit) tit.textContent = botao.dataset.titulo || '';
             const cid = document.getElementById('devolucao-cidadao-nome');
-            if (cid) cid.textContent = botao.dataset.cidadao;
+            if (cid) cid.textContent = botao.dataset.cidadao || '';
             const modal = document.getElementById('modal-confirmar-devolucao');
             if (modal) modal.showModal();
         };
 
         window.abrirModalCidadao = function(botao) {
             const nome = document.getElementById('cidadao-modal-nome');
-            if (nome) nome.textContent = botao.dataset.nome;
+            if (nome) nome.textContent = botao.dataset.nome || '';
             const email = document.getElementById('cidadao-modal-email');
-            if (email) email.textContent = botao.dataset.email;
+            if (email) email.textContent = botao.dataset.email || '';
             const foto = document.getElementById('cidadao-modal-foto');
-            if (foto) foto.src = botao.dataset.foto;
+            if (foto) foto.src = botao.dataset.foto || '';
 
             const historico = JSON.parse(botao.dataset.historico || '[]');
             const tbody = document.getElementById('cidadao-modal-tabela-corpo');
@@ -401,7 +459,7 @@
                 if (historico.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-60">Sem registos de requisições.</td></tr>';
                 } else {
-                    historico.forEach(r => {
+                    historico.forEach(function(r) {
                         let badgeClass = 'badge-warning text-stone-900';
                         let badgeText = 'Ativa';
                         if (r.status === 'entregue') {
@@ -413,12 +471,10 @@
                         }
 
                         const tr = document.createElement('tr');
-                        tr.innerHTML = `
-                            <td class="font-mono font-bold text-primary">#${r.numero}</td>
-                            <td class="font-bold">${r.livro}</td>
-                            <td class="font-mono text-[11px]">${r.inicio} → ${r.fim}</td>
-                            <td><span class="badge ${badgeClass} badge-xs font-bold">${badgeText}</span></td>
-                        `;
+                        tr.innerHTML = '<td class="font-mono font-bold text-primary">#' + r.numero + '</td>'
+                            + '<td class="font-bold">' + r.livro + '</td>'
+                            + '<td class="font-mono text-[11px]">' + r.inicio + ' → ' + r.fim + '</td>'
+                            + '<td><span class="badge ' + badgeClass + ' badge-xs font-bold">' + badgeText + '</span></td>';
                         tbody.appendChild(tr);
                     });
                 }
@@ -427,73 +483,15 @@
             const modal = document.getElementById('modal-detalhes-cidadao');
             if (modal) modal.showModal();
         };
-    </script>
-<dialog id="modal-criar-review" class="modal">
-        <div class="modal-box max-w-lg bg-base-100 border border-base-300 shadow-2xl p-6">
-            <form method="dialog">
-                <button class="btn btn-sm btn-circle btn-ghost absolute right-3 top-3">✕</button>
-            </form>
 
-            <h3 class="font-bold text-lg text-amber-950 border-b border-base-200 pb-2 flex items-center gap-2">
-                <span>⭐</span> {{ __('avaliar obra requisitada') }}
-            </h3>
-
-            <p class="text-xs text-base-content/70 mt-2">
-                {{ __('partilhe a sua opinião crítica sobre a obra lida. a avaliação ficará visível publicamente após validação.') }}
-            </p>
-
-            <div class="bg-base-200/60 p-3 rounded-lg border border-base-300 mt-3">
-                <span class="text-[11px] font-bold uppercase tracking-wider text-base-content/60">{{ __('obra') }}</span>
-                <p id="review-livro-titulo" class="font-bold text-sm text-base-content leading-tight mt-0.5"></p>
-            </div>
-
-            <form id="form-criar-review" method="post" action="{{ route('comentarios.store') }}" class="mt-4 flex flex-col gap-4">
-                @csrf
-                <input type="hidden" name="requisicao_id" id="review-requisicao-id" value="">
-
-                <div class="form-control w-full">
-                    <label class="label py-1" for="select-classificacao">
-                        <span class="label-text font-bold text-xs text-base-content">{{ __('classificação (1 a 5 estrelas)') }}</span>
-                    </label>
-                    <select name="classificacao" id="select-classificacao" required class="select select-bordered select-sm w-full font-bold text-xs">
-                        <option value="5">⭐⭐⭐⭐⭐ (5 / 5 - excelente)</option>
-                        <option value="4">⭐⭐⭐⭐ (4 / 5 - muito bom)</option>
-                        <option value="3">⭐⭐⭐ (3 / 5 - bom)</option>
-                        <option value="2">⭐⭐ (2 / 5 - suficiente)</option>
-                        <option value="1">⭐ (1 / 5 - fraco)</option>
-                    </select>
-                </div>
-
-                <div class="form-control w-full">
-                    <label class="label py-1" for="textarea-comentario">
-                        <span class="label-text font-bold text-xs text-base-content">{{ __('o seu comentário / crítica literária') }}</span>
-                    </label>
-                    <textarea name="comentario" id="textarea-comentario" required minlength="5" maxlength="1000" rows="4" placeholder="{{ __('escreva aqui a sua opinião sobre a narrativa, personagens ou escrita...') }}" class="textarea textarea-bordered w-full text-xs sm:text-sm leading-relaxed"></textarea>
-                </div>
-
-                <div class="modal-action border-t border-base-200 pt-3 mt-2 flex justify-end gap-2">
-                    <button type="button" onclick="document.getelementbyid('modal-criar-review').close()" class="btn btn-ghost btn-sm">
-                        {{ __('cancelar') }}
-                    </button>
-                    <button type="submit" class="btn btn-primary btn-sm font-bold shadow-md">
-                        {{ __('submeter avaliação') }}
-                    </button>
-                </div>
-            </form>
-        </div>
-        <form method="dialog" class="modal-backdrop">
-            <button>{{ __('fechar') }}</button>
-        </form>
-    </dialog>
-
-    <script>
-        window.abrirmodalcriarreview = function(botao) {
-            const reqid = document.getelementbyid('review-requisicao-id');
-            if (reqid) reqid.value = botao.dataset.requisicaoid;
-            const titulo = document.getelementbyid('review-livro-titulo');
-            if (titulo) titulo.textcontent = botao.dataset.livrotitulo;
-            const modal = document.getelementbyid('modal-criar-review');
-            if (modal) modal.showmodal();
+        window.abrirModalCriarReview = function(botao) {
+            const reqId = document.getElementById('review-requisicao-id');
+            if (reqId) reqId.value = botao.dataset.requisicaoId || botao.dataset.requisicaoid || '';
+            const titulo = document.getElementById('review-livro-titulo');
+            if (titulo) titulo.textContent = botao.dataset.livroTitulo || botao.dataset.livrotitulo || '';
+            const modal = document.getElementById('modal-criar-review');
+            if (modal) modal.showModal();
         };
+        window.abrirmodalcriarreview = window.abrirModalCriarReview;
     </script>
 </x-app-layout>
