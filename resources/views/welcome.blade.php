@@ -209,6 +209,8 @@
             </section>
 
             @php
+                $servicoRecomendacao = app(App\Services\RecomendacaoLivroService::class);
+
                 $estilosLombadas = [
                     'bg-gradient-to-r from-red-950 via-rose-950 to-red-950 border-amber-500/30 text-amber-100',
                     'bg-gradient-to-r from-blue-950 via-slate-900 to-indigo-950 border-amber-400/30 text-blue-100',
@@ -254,6 +256,8 @@
                                             'comentario' => $c->comentario,
                                             'data' => $c->created_at->format('d/m/Y'),
                                         ])->values();
+
+                                        $relacionadosData = $servicoRecomendacao->recomendar($livro, 3);
                                     @endphp
                                     <div class="lombada-livro group relative h-[390px] sm:h-[420px] w-16 sm:w-18 md:w-20 rounded-r-sm rounded-l-xs shadow-xl hover:-translate-y-6 hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col justify-between p-2 sm:p-2.5 border-l-4 border-r-2 border-t border-b overflow-hidden select-none {{ $estilosLombadas[$loop->index % count($estilosLombadas)] }}"
                                          data-titulo="{{ $livro->nome }}"
@@ -269,6 +273,7 @@
                                          data-id="{{ $livro->id }}"
                                          data-historico="{{ json_encode($historicoData) }}"
                                          data-avaliacoes="{{ json_encode($avaliacoesData) }}"
+                                         data-relacionados="{{ json_encode($relacionadosData) }}"
                                          onclick="abrirLivroPorElemento(this)">
 
                                         <div class="flex justify-center w-full mb-1">
@@ -329,14 +334,14 @@
         </main>
 
         <dialog id="modal-detalhes-livro" class="modal">
-            <div id="encadernacao-livro" class="modal-box max-w-5xl p-3 sm:p-5 bg-[#421522] border-4 border-[#2b0d16] shadow-2xl rounded-lg relative overflow-hidden">
+            <div id="encadernacao-livro" class="modal-box max-w-5xl p-3 sm:p-5 bg-[#421522] border-4 border-[#2b0d16] shadow-2xl rounded-lg relative max-h-[92vh] overflow-y-auto">
                 <form method="dialog">
                     <button class="absolute right-4 top-3 z-40 text-neutral-800 hover:text-black text-xl font-bold p-1 leading-none transition-colors">✕</button>
                 </form>
 
-                <div id="bloco-paginas-livro" class="relative rounded-sm bg-[#f4ebd0] border-l-8 border-r-8 border-[#d8caa6] shadow-2xl overflow-hidden">
+                <div id="bloco-paginas-livro" class="relative rounded-sm bg-[#f4ebd0] border-l-8 border-r-8 border-[#d8caa6] shadow-2xl">
                     <div class="grid grid-cols-1 md:grid-cols-2 min-h-[500px]">
-                        <div id="pagina-esquerda-livro" class="p-6 sm:p-8 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-[#d4be94] shadow-[inset_-16px_0_24px_-8px_rgba(70,40,15,0.25)]">
+                        <div id="pagina-esquerda-livro" class="p-6 sm:p-8 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-[#d4be94] shadow-[inset_-16px_0_24px_-8px_rgba(70,40,15,0.25)] overflow-y-auto max-h-[75vh] md:max-h-[82vh]">
                             <img id="modal-livro-capa" src="" alt="Capa" class="w-40 sm:w-48 h-56 sm:h-64 object-cover rounded shadow-lg border border-[#c5ad82] shrink-0">
                             <div class="w-full mt-4 flex flex-col gap-1.5 text-xs sm:text-sm text-neutral-900">
                                 <p><span class="font-serif font-bold text-amber-950">Autor:</span> <span id="modal-livro-autor" class="font-serif"></span></p>
@@ -365,7 +370,7 @@
                             </div>
                         </div>
 
-                        <div id="pagina-direita-livro" class="p-6 sm:p-8 flex flex-col justify-between shadow-[inset_16px_0_24px_-8px_rgba(70,40,15,0.25)]">
+                        <div id="pagina-direita-livro" class="p-6 sm:p-8 flex flex-col justify-between shadow-[inset_16px_0_24px_-8px_rgba(70,40,15,0.25)] overflow-y-auto max-h-[75vh] md:max-h-[82vh]">
                             <div>
                                 <h3 id="modal-livro-titulo" class="font-serif font-bold text-2xl sm:text-3xl text-amber-950 border-b-2 border-[#c5ad82] pb-2 leading-tight tracking-tight antialiased"></h3>
                                 <h4 class="font-serif font-semibold text-xs uppercase tracking-widest text-amber-900 mt-4">Bibliografia & Sinopse</h4>
@@ -395,6 +400,23 @@
                                                 {{ __('Sem avaliações aprovadas até ao momento.') }}
                                             </div>
                                             <div id="modal-livro-avaliacoes-lista" class="flex flex-col gap-1.5 hidden"></div>
+                                        </div>
+                                    </details>
+                                </div>
+
+                                <div id="modal-livro-relacionados-bloco" data-texto-ver-obra="{{ __('ver obra') }}" class="mt-2 border-t border-[#c5ad82] pt-2">
+                                    <details class="collapse collapse-arrow bg-amber-100/70 border border-[#c5ad82] rounded-md after:!top-1/2 after:!-translate-y-1/2">
+                                        <summary class="collapse-title text-xs font-serif font-bold uppercase tracking-wider text-amber-950 py-2.5 min-h-0 cursor-pointer flex items-center gap-1 after:!top-[50%]">
+                                            <span>📚</span> {{ __('Livros Relacionados') }} (<span id="modal-livro-relacionados-total">0</span>)
+                                        </summary>
+                                        <div class="collapse-content px-2 py-1 max-h-48 overflow-y-auto">
+                                            <p class="text-[10px] text-neutral-600 italic mb-2 text-center">
+                                                {{ __('Sugestões com base na temática e palavras-chave desta obra.') }}
+                                            </p>
+                                            <div id="modal-livro-relacionados-vazio" class="text-xs text-neutral-600 italic py-1 text-center">
+                                                {{ __('Sem sugestões de livros relacionados.') }}
+                                            </div>
+                                            <div id="modal-livro-relacionados-lista" class="grid grid-cols-1 sm:grid-cols-3 gap-2 hidden"></div>
                                         </div>
                                     </details>
                                 </div>
@@ -652,8 +674,85 @@
                         }
                     }
 
+                    const relacionados = JSON.parse(dados.relacionados || '[]');
+                    const totalRelacionadosSpan = document.getElementById('modal-livro-relacionados-total');
+                    const listaRelacionados = document.getElementById('modal-livro-relacionados-lista');
+                    const vazioRelacionadosMsg = document.getElementById('modal-livro-relacionados-vazio');
+
+                    if (totalRelacionadosSpan) {
+                        totalRelacionadosSpan.textContent = relacionados.length;
+                    }
+
+                    if (listaRelacionados && vazioRelacionadosMsg) {
+                        listaRelacionados.innerHTML = '';
+                        if (relacionados.length === 0) {
+                            vazioRelacionadosMsg.classList.remove('hidden');
+                            listaRelacionados.classList.add('hidden');
+                        } else {
+                            vazioRelacionadosMsg.classList.add('hidden');
+                            listaRelacionados.classList.remove('hidden');
+                            relacionados.forEach(function(item) {
+                                const card = document.createElement('div');
+                                card.className = 'flex flex-col justify-between p-2 bg-base-100/90 rounded border border-[#d8caa6] shadow-sm hover:border-primary transition-all text-xs';
+
+                                const topDiv = document.createElement('div');
+                                topDiv.className = 'flex items-center gap-2';
+
+                                if (item.capa) {
+                                    const img = document.createElement('img');
+                                    img.src = item.capa;
+                                    img.alt = item.nome;
+                                    img.className = 'w-8 h-11 object-cover rounded shadow border border-[#d8caa6] shrink-0';
+                                    topDiv.appendChild(img);
+                                } else {
+                                    const icon = document.createElement('div');
+                                    icon.className = 'w-8 h-11 bg-base-300 rounded flex items-center justify-center text-xs shrink-0';
+                                    icon.textContent = '📖';
+                                    topDiv.appendChild(icon);
+                                }
+
+                                const infoDiv = document.createElement('div');
+                                infoDiv.className = 'flex flex-col grow overflow-hidden';
+
+                                const tituloEl = document.createElement('span');
+                                tituloEl.className = 'font-bold text-[11px] text-base-content truncate leading-tight';
+                                tituloEl.textContent = item.nome;
+
+                                const autorEl = document.createElement('span');
+                                autorEl.className = 'text-[9px] text-neutral-600 truncate';
+                                autorEl.textContent = item.autor;
+
+                                infoDiv.appendChild(tituloEl);
+                                infoDiv.appendChild(autorEl);
+                                topDiv.appendChild(infoDiv);
+                                card.appendChild(topDiv);
+
+                                const blocoRelacionados = document.getElementById('modal-livro-relacionados-bloco');
+                                const textoVerObra = (blocoRelacionados && blocoRelacionados.dataset.textoVerObra) ? blocoRelacionados.dataset.textoVerObra : 'Ver Obra';
+
+                                const btn = document.createElement('button');
+                                btn.type = 'button';
+                                btn.className = 'btn btn-outline btn-primary btn-xs mt-2 w-full text-[10px] font-bold';
+                                btn.textContent = '👁️ ' + textoVerObra;
+                                btn.onclick = function() {
+                                    window.abrirLivroRelacionado(item.id);
+                                };
+
+                                card.appendChild(btn);
+                                listaRelacionados.appendChild(card);
+                            });
+                        }
+                    }
+
                     document.getElementById('modal-detalhes-livro').showModal();
                 }
+
+                window.abrirLivroRelacionado = function(livroId) {
+                    const lombada = document.querySelector('.lombada-livro[data-id="' + livroId + '"]');
+                    if (lombada) {
+                        abrirLivroPorElemento(lombada);
+                    }
+                };
 
                 function abrirModalConfirmacao() {
                     const modalConfirmacao = document.getElementById('modal-confirmar-requisicao');
