@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminComentarioController;
 use App\Http\Controllers\AdminUserController;
+use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\EditoraController;
@@ -104,6 +105,7 @@ Route::middleware([
     Route::post('/requisicoes', [RequisicaoController::class, 'store'])->name('requisicoes.store');
     Route::post('/requisicoes/{requisicao}/cancelar', [RequisicaoController::class, 'cancelar'])->name('requisicoes.cancelar');
     Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
+        Route::post('/alertas', [AlertaController::class, 'store'])->name('alertas.store');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);

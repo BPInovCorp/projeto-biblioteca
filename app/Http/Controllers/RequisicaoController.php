@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\LivroDisponivelMail;
 use App\Mail\RequisicaoConfirmadaMail;
+use App\Models\Alerta;
 use App\Models\Livro;
 use App\Models\Requisicao;
 use App\Models\User;
@@ -137,6 +139,25 @@ class RequisicaoController extends Controller
             'dias_decorridos' => $diasDecorridos,
             'status' => 'entregue',
         ]);
+
+        $livro = $requisicao->livro;
+        if ($livro && $livro->isDisponivel()) {
+            $alertasPendentes = Alerta::with('user')
+                ->where('livro_id', $livro->id)
+                ->whereNull('notificado_at')
+                ->get();
+
+            foreach ($alertasPendentes as $alerta) {
+                try {
+                    if ($alerta->user && $alerta->user->email) {
+                        Mail::to($alerta->user->email)->send(new LivroDisponivelMail($livro, $alerta->user));
+                        $alerta->update(['notificado_at' => now()]);
+                    }
+                } catch (Throwable $e) {
+                    Log::error('Falha ao enviar alerta de livro disponível ao cidadão: ' . $e->getMessage());
+                }
+            }
+        }
 
         return redirect()->back()->with('status', __('Livro rececionado e devolvido com sucesso.'));
     }

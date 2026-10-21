@@ -258,6 +258,7 @@
                                         ])->values();
 
                                         $relacionadosData = $servicoRecomendacao->recomendar($livro, 3);
+                                        $temAlertaAtivo = auth()->check() && $livro->alertas->where('user_id', auth()->id())->whereNull('notificado_at')->isNotEmpty();
                                     @endphp
                                     <div class="lombada-livro group relative h-[390px] sm:h-[420px] w-16 sm:w-18 md:w-20 rounded-r-sm rounded-l-xs shadow-xl hover:-translate-y-6 hover:scale-105 transition-all duration-300 cursor-pointer flex flex-col justify-between p-2 sm:p-2.5 border-l-4 border-r-2 border-t border-b overflow-hidden select-none {{ $estilosLombadas[$loop->index % count($estilosLombadas)] }}"
                                          data-titulo="{{ $livro->nome }}"
@@ -274,6 +275,7 @@
                                          data-historico="{{ json_encode($historicoData) }}"
                                          data-avaliacoes="{{ json_encode($avaliacoesData) }}"
                                          data-relacionados="{{ json_encode($relacionadosData) }}"
+                                         data-tem-alerta="{{ $temAlertaAtivo ? '1' : '0' }}"
                                          onclick="abrirLivroPorElemento(this)">
 
                                         <div class="flex justify-center w-full mb-1">
@@ -356,11 +358,25 @@
                                     <span id="modal-livro-disponibilidade" data-texto-disponivel="{{ __('Disponível para Requisição') }}" data-texto-indisponivel="{{ __('Indisponível para Requisição') }}" class="badge font-bold"></span>
                                 </div>
 
-                                <div id="modal-btn-requisitar-container" class="mt-4 pt-3 border-t border-[#d8caa6] w-full flex justify-center">
+                                <div id="modal-btn-requisitar-container" class="mt-4 pt-3 border-t border-[#d8caa6] w-full flex flex-col items-center gap-2">
                                     @auth
                                         <button type="button" id="modal-btn-requisitar" onclick="abrirModalConfirmacao()" data-texto-requisitar="{{ __('Requisitar Livro') }}" data-texto-indisponivel="{{ __('Indisponível para Requisição') }}" class="btn btn-primary w-full shadow-md">
                                             {{ __('Requisitar Livro') }}
                                         </button>
+
+                                        <div id="container-alerta-disponibilidade" class="w-full hidden">
+                                            <span id="badge-alerta-ativo" class="badge bg-sky-200 text-black border border-sky-400 font-black text-xs py-2.5 px-3 w-full justify-center shadow-sm hidden">
+                                                🔔 {{ __('Notificação Ativa') }}
+                                            </span>
+
+                                            <form id="form-alerta-disponibilidade" method="POST" action="{{ route('alertas.store') }}" class="w-full hidden">
+                                                @csrf
+                                                <input type="hidden" name="livro_id" id="alerta-livro-id" value="">
+                                                <button type="submit" class="btn btn-outline btn-warning btn-sm w-full font-bold shadow-sm text-xs">
+                                                    🔔 {{ __('Notificar-me quando disponível') }}
+                                                </button>
+                                            </form>
+                                        </div>
                                     @else
                                         <a href="{{ route('login') }}" class="btn btn-outline btn-primary w-full text-xs">
                                             {{ __('Iniciar Sessão para Requisitar') }}
@@ -577,6 +593,28 @@
                     const confirmarCapa = document.getElementById('confirmar-livro-capa');
                     if (confirmarCapa) {
                         confirmarCapa.src = dados.capa;
+                    }
+
+                    const containerAlerta = document.getElementById('container-alerta-disponibilidade');
+                    const badgeAlerta = document.getElementById('badge-alerta-ativo');
+                    const formAlerta = document.getElementById('form-alerta-disponibilidade');
+                    const inputAlertaLivroId = document.getElementById('alerta-livro-id');
+
+                    if (containerAlerta) {
+                        if (dados.disponivel === '1') {
+                            containerAlerta.classList.add('hidden');
+                        } else {
+                            containerAlerta.classList.remove('hidden');
+                            if (inputAlertaLivroId) inputAlertaLivroId.value = dados.id;
+
+                            if (dados.temAlerta === '1') {
+                                if (badgeAlerta) badgeAlerta.classList.remove('hidden');
+                                if (formAlerta) formAlerta.classList.add('hidden');
+                            } else {
+                                if (badgeAlerta) badgeAlerta.classList.add('hidden');
+                                if (formAlerta) formAlerta.classList.remove('hidden');
+                            }
+                        }
                     }
 
                     const historico = JSON.parse(dados.historico || '[]');

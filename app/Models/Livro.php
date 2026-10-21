@@ -53,6 +53,11 @@ class Livro extends Model
         return $this->hasMany(Comentario::class, 'livro_id');
     }
 
+    public function alertas(): HasMany
+    {
+        return $this->hasMany(Alerta::class, 'livro_id');
+    }
+
     public function isDisponivel(): bool
     {
         if ($this->relationLoaded('requisicoes')) {
