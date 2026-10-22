@@ -42,8 +42,8 @@ class AdminComentarioController extends Controller
 
     public function aprovar(Comentario $comentario): RedirectResponse
     {
-        if ($comentario->status !== 'suspenso') {
-            return redirect()->back()->with('error', __('Esta avaliação já foi moderada.'));
+        if ($comentario->status === 'ativo') {
+            return redirect()->back()->with('error', __('Esta avaliação já se encontra ativa.'));
         }
 
         $comentario->update([
@@ -65,8 +65,8 @@ class AdminComentarioController extends Controller
 
     public function recusar(Request $request, Comentario $comentario): RedirectResponse
     {
-        if ($comentario->status !== 'suspenso') {
-            return redirect()->back()->with('error', __('Esta avaliação já foi moderada.'));
+        if ($comentario->status === 'recusado') {
+            return redirect()->back()->with('error', __('Esta avaliação já se encontra recusada.'));
         }
 
         $validated = $request->validate([

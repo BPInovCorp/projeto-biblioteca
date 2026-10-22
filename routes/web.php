@@ -10,6 +10,7 @@ use App\Http\Controllers\GoogleBooksController;
 use App\Http\Controllers\LivroController;
 use App\Http\Controllers\RequisicaoController;
 use App\Models\Autor;
+use App\Models\Comentario;
 use App\Models\Editora;
 use App\Models\Livro;
 use Illuminate\Http\Request;
@@ -17,7 +18,15 @@ use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function (Request $request) {
-    $query = Livro::with(['editora', 'autores', 'requisicoes']);
+    $userId = $request->user()?->id;
+
+    $query = Livro::with([
+        'editora',
+        'autores',
+        'requisicoes',
+        'comentarios' => fn($q) => $q->where('status', 'ativo')->with('user')->latest()->take(10),
+        'alertas' => fn($q) => $q->where('user_id', $userId)->whereNull('notificado_at'),
+    ]);
 
     $autoresSelecionados = $request->input('autores', []);
     if (!empty($autoresSelecionados)) {
@@ -89,6 +98,8 @@ Route::get('/', function (Request $request) {
     return view('welcome', compact('livrosPaginados', 'autores', 'editoras'));
 });
 
+Route::get('/livros/{livro}/detalhes', [LivroController::class, 'detalhes'])->name('livros.detalhes');
+
 Route::middleware([
     'auth:sanctum',
     config('jetstream.auth_session'),
@@ -98,7 +109,17 @@ Route::middleware([
             return redirect()->route('profile.show');
         }
 
-        return view('dashboard');
+        $totalLivros = Livro::count();
+        $totalAutores = Autor::count();
+        $totalEditoras = Editora::count();
+        $totalComentariosSuspensos = Comentario::where('status', 'suspenso')->count();
+
+        return view('dashboard', compact(
+            'totalLivros',
+            'totalAutores',
+            'totalEditoras',
+            'totalComentariosSuspensos'
+        ));
     })->name('dashboard');
 
     Route::get('/requisicoes', [RequisicaoController::class, 'index'])->name('requisicoes.index');

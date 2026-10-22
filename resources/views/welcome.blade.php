@@ -529,14 +529,17 @@
 
             <script>
                 function abrirLivroPorElemento(elemento) {
-                    const dados = elemento.dataset;
-                    document.getElementById('modal-livro-titulo').textContent = dados.titulo;
-                    document.getElementById('modal-livro-autor').textContent = dados.autor;
-                    document.getElementById('modal-livro-editora').textContent = dados.editora;
-                    document.getElementById('modal-livro-isbn').textContent = dados.isbn;
-                    document.getElementById('modal-livro-preco').textContent = dados.preco;
-                    document.getElementById('modal-livro-bibliografia').textContent = dados.bibliografia;
-                    document.getElementById('modal-livro-capa').src = dados.capa;
+                    preencherModalComDados(elemento.dataset);
+                }
+
+                function preencherModalComDados(dados) {
+                    document.getElementById('modal-livro-titulo').textContent = dados.titulo || '';
+                    document.getElementById('modal-livro-autor').textContent = dados.autor || '';
+                    document.getElementById('modal-livro-editora').textContent = dados.editora || '';
+                    document.getElementById('modal-livro-isbn').textContent = dados.isbn || '';
+                    document.getElementById('modal-livro-preco').textContent = dados.preco || '';
+                    document.getElementById('modal-livro-bibliografia').textContent = dados.bibliografia || '';
+                    document.getElementById('modal-livro-capa').src = dados.capa || '';
 
                     const badgeDisponivel = document.getElementById('modal-livro-disponibilidade');
                     if (dados.disponivel === '1') {
@@ -587,12 +590,12 @@
 
                     const confirmarTitulo = document.getElementById('confirmar-livro-titulo');
                     if (confirmarTitulo) {
-                        confirmarTitulo.textContent = dados.titulo;
+                        confirmarTitulo.textContent = dados.titulo || '';
                     }
 
                     const confirmarCapa = document.getElementById('confirmar-livro-capa');
                     if (confirmarCapa) {
-                        confirmarCapa.src = dados.capa;
+                        confirmarCapa.src = dados.capa || '';
                     }
 
                     const containerAlerta = document.getElementById('container-alerta-disponibilidade');
@@ -617,7 +620,7 @@
                         }
                     }
 
-                    const historico = JSON.parse(dados.historico || '[]');
+                    const historico = Array.isArray(dados.historico) ? dados.historico : JSON.parse(dados.historico || '[]');
                     const totalSpan = document.getElementById('modal-livro-historico-total');
                     const listaContainer = document.getElementById('modal-livro-historico-lista');
                     const vazioMsg = document.getElementById('modal-livro-historico-vazio');
@@ -634,10 +637,19 @@
                         } else {
                             vazioMsg.classList.add('hidden');
                             listaContainer.classList.remove('hidden');
-                            historico.forEach(item => {
+                            historico.forEach(function(item) {
                                 const row = document.createElement('div');
                                 row.className = 'flex items-center justify-between text-xs p-1 bg-base-100/90 rounded border border-[#d8caa6]';
 
+                                const spanNum = document.createElement('span');
+                                spanNum.className = 'font-mono font-bold text-amber-950';
+                                spanNum.textContent = '#' + item.numero;
+
+                                const spanData = document.createElement('span');
+                                spanData.className = 'text-[11px] font-mono text-neutral-700';
+                                spanData.textContent = item.devolucao ? item.inicio + ' → ' + item.devolucao : item.inicio;
+
+                                const spanBadge = document.createElement('span');
                                 let badgeClass = 'badge-warning text-stone-900';
                                 let badgeText = 'Ativa';
                                 if (item.status === 'entregue') {
@@ -647,20 +659,18 @@
                                     badgeClass = 'badge-ghost';
                                     badgeText = 'Cancelada';
                                 }
+                                spanBadge.className = 'badge ' + badgeClass + ' badge-xs font-bold';
+                                spanBadge.textContent = badgeText;
 
-                                const dataTexto = item.devolucao ? `${item.inicio} → ${item.devolucao}` : `${item.inicio}`;
-
-                                row.innerHTML = `
-                                    <span class="font-mono font-bold text-amber-950">#${item.numero}</span>
-                                    <span class="text-[11px] font-mono text-neutral-700">${dataTexto}</span>
-                                    <span class="badge ${badgeClass} badge-xs font-bold">${badgeText}</span>
-                                `;
+                                row.appendChild(spanNum);
+                                row.appendChild(spanData);
+                                row.appendChild(spanBadge);
                                 listaContainer.appendChild(row);
                             });
                         }
                     }
 
-                    const avaliacoes = JSON.parse(dados.avaliacoes || '[]');
+                    const avaliacoes = Array.isArray(dados.avaliacoes) ? dados.avaliacoes : JSON.parse(dados.avaliacoes || '[]');
                     const totalAvaliacoesSpan = document.getElementById('modal-livro-avaliacoes-total');
                     const listaAvaliacoes = document.getElementById('modal-livro-avaliacoes-lista');
                     const vazioAvaliacoesMsg = document.getElementById('modal-livro-avaliacoes-vazio');
@@ -677,7 +687,7 @@
                         } else {
                             vazioAvaliacoesMsg.classList.add('hidden');
                             listaAvaliacoes.classList.remove('hidden');
-                            avaliacoes.forEach(item => {
+                            avaliacoes.forEach(function(item) {
                                 const card = document.createElement('div');
                                 card.className = 'flex flex-col gap-0.5 p-2 bg-base-100/90 rounded border border-[#d8caa6] text-xs';
 
@@ -712,7 +722,7 @@
                         }
                     }
 
-                    const relacionados = JSON.parse(dados.relacionados || '[]');
+                    const relacionados = Array.isArray(dados.relacionados) ? dados.relacionados : JSON.parse(dados.relacionados || '[]');
                     const totalRelacionadosSpan = document.getElementById('modal-livro-relacionados-total');
                     const listaRelacionados = document.getElementById('modal-livro-relacionados-lista');
                     const vazioRelacionadosMsg = document.getElementById('modal-livro-relacionados-vazio');
@@ -789,6 +799,20 @@
                     const lombada = document.querySelector('.lombada-livro[data-id="' + livroId + '"]');
                     if (lombada) {
                         abrirLivroPorElemento(lombada);
+                    } else {
+                        fetch('/livros/' + livroId + '/detalhes')
+                            .then(function(res) {
+                                if (!res.ok) {
+                                    throw new Error('Falha ao obter dados da obra');
+                                }
+                                return res.json();
+                            })
+                            .then(function(dados) {
+                                preencherModalComDados(dados);
+                            })
+                            .catch(function(err) {
+                                console.error('Erro ao carregar livro relacionado:', err);
+                            });
                     }
                 };
 

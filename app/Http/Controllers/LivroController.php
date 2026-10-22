@@ -6,8 +6,11 @@ use App\Exports\LivrosExport;
 use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
+use App\Services\RecomendacaoLivroService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class LivroController extends Controller
@@ -172,5 +175,63 @@ class LivroController extends Controller
     public function export()
     {
         return Excel::download(new LivrosExport, 'livros.xlsx');
+    }
+
+    public function detalhes(Livro $livro, RecomendacaoLivroService $recomendador): JsonResponse
+    {
+        $livro->load(['editora', 'autores']);
+
+        $capaUrl = $livro->imagem_capa
+            ? (Str::startsWith($livro->imagem_capa, ['http://', 'https://']) ? $livro->imagem_capa : asset($livro->imagem_capa))
+            : '';
+
+        $primeiroAutor = optional($livro->autores->first());
+        $autorFotoUrl = $primeiroAutor->foto
+            ? (Str::startsWith($primeiroAutor->foto, ['http://', 'https://']) ? $primeiroAutor->foto : asset($primeiroAutor->foto))
+            : '';
+
+        $editoraLogoUrl = optional($livro->editora)->logotipo
+            ? (Str::startsWith(optional($livro->editora)->logotipo, ['http://', 'https://']) ? optional($livro->editora)->logotipo : asset(optional($livro->editora)->logotipo))
+            : '';
+
+        $precoFormatado = is_numeric($livro->preco)
+            ? number_format((float) $livro->preco, 2, ',', '.') . ' €'
+            : ($livro->preco ?? 'Preço sob consulta');
+
+        $userId = request()->user()?->id;
+        $temAlerta = $userId ? $livro->alertas()->where('user_id', $userId)->whereNull('notificado_at')->exists() : false;
+
+        $avaliacoes = $livro->comentarios()
+            ->where('status', 'ativo')
+            ->with('user')
+            ->latest('id')
+            ->take(10)
+            ->get()
+            ->map(fn($c) => [
+                'nome' => optional($c->user)->name ?? 'Leitor',
+                'estrelas' => (int) $c->classificacao,
+                'comentario' => $c->comentario,
+                'data' => $c->created_at->format('d/m/Y'),
+            ])
+            ->values();
+
+        $relacionados = $recomendador->recomendar($livro, 3);
+
+        return response()->json([
+            'id' => $livro->id,
+            'titulo' => $livro->nome,
+            'autor' => $livro->autores->pluck('nome')->implode(', ') ?: 'Autor Desconhecido',
+            'editora' => optional($livro->editora)->nome ?? '',
+            'isbn' => $livro->isbn,
+            'preco' => $precoFormatado,
+            'bibliografia' => $livro->bibliografia ?? '',
+            'capa' => $capaUrl,
+            'autorFoto' => $autorFotoUrl,
+            'editoraLogotipo' => $editoraLogoUrl,
+            'disponivel' => $livro->isDisponivel() ? '1' : '0',
+            'temAlerta' => $temAlerta ? '1' : '0',
+            'avaliacoes' => $avaliacoes,
+            'relacionados' => $relacionados,
+        ]);
     }
 }

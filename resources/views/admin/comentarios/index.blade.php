@@ -112,14 +112,16 @@
                                         @endif
                                     </td>
                                     <td class="text-end">
-                                        @if($comentario->status === 'suspenso')
-                                            <div class="flex justify-end items-center gap-1.5">
+                                        <div class="flex justify-end items-center gap-1.5">
+                                            @if($comentario->status !== 'ativo')
                                                 <form method="POST" action="{{ route('admin.comentarios.aprovar', $comentario) }}" class="inline">
                                                     @csrf
                                                     <button type="submit" class="btn btn-success btn-xs text-white font-bold" title="{{ __('Aprovar e publicar no catálogo') }}">
                                                         {{ __('Aprovar') }}
                                                     </button>
                                                 </form>
+                                            @endif
+                                            @if($comentario->status !== 'recusado')
                                                 <button type="button" class="btn btn-error btn-xs text-white font-bold btn-recusar-comentario" onclick="abrirModalRecusarComentario(this)"
                                                     data-url="{{ route('admin.comentarios.recusar', $comentario) }}"
                                                     data-livro="{{ $comentario->livro->nome }}"
@@ -128,10 +130,8 @@
                                                     title="{{ __('Recusar com justificação') }}">
                                                     {{ __('Recusar') }}
                                                 </button>
-                                            </div>
-                                        @else
-                                            <span class="text-xs text-base-content/40">—</span>
-                                        @endif
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty

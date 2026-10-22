@@ -1,36 +1,61 @@
 # Projeto Biblioteca
 
-Sistema de Gestão de Biblioteca desenvolvido em **Laravel**, com autenticação segura **Laravel Jetstream (2FA)**, interface moderna baseada em **DaisyUI / Tailwind CSS**, integração com a **Google Books API**, controlo de requisições e exportação para Excel.
+Sistema de Gestão de Biblioteca desenvolvido em **Laravel**, com autenticação segura **Laravel Jetstream (2FA)**, interface moderna baseada em **DaisyUI / Tailwind CSS**, integração com a **Google Books API**, motor de recomendação inteligente, controlo de requisições, moderação de críticas literárias e exportação para Excel.
 
 ## Funcionalidades Principais
-- **Autenticação Avançada:** Sistema completo com suporte a Autenticação de 2 Fatores (2FA).
-- **Controlo de Acessos (RBAC):** Dois papéis de permissões estritos: **Administradores** (gestão de obras, receção de livros, importação externa e criação de novos administradores) e **Cidadãos** (requisição de exemplares disponíveis e consulta do seu histórico). Novos registos públicos assumem automaticamente o papel de Cidadão.
-- **Estante Interativa ("Armário de Livros"):** Visualização de lombadas clássicas com texturas encadernadas dinâmicas, crachás de disponibilidade em tempo real (*Disponível* / *Requisitado*), pesquisa global e filtros avançados.
-- **Modal "Livro Aberto Real":** Detalhe da obra com capa, sinopse, dados do autor e editora, botão reativo de requisição e histórico cronológico expansível de empréstimos daquele exemplar.
-- **Módulo de Requisições e Empréstimos:** Numeração sequencial única, snapshot fotográfico do cidadão, data de início e prazo de devolução (+5 dias), com garantia de concorrência (`retry(3, ...)`) e limite estrito de 3 livros ativos em simultâneo por cidadão.
-- **Ciclo de Devolução e Cancelamento:** Confirmação de receção exclusiva por Administradores com registo da data real e cálculo automático de dias decorridos. Mecanismo de cancelamento de requisições ativas por cidadãos e administradores através de modal temático.
-- **Painel de Indicadores (KPIs):** Três métricas no topo do menu de requisições (*Requisições Ativas*, *Movimento nos últimos 30 dias* e *Livros entregues Hoje*), segregadas com escopo pessoal para Cidadãos e visão global para Administradores.
-- **Sistema de Emails e Lembretes (Scheduler):** Notificação instantânea com capa do livro incorporada no ato da requisição (para cidadão e administradores) e comando agendado de alerta cordial na véspera da entrega (D-1).
-- **Integração com a Google Books API:**
-  - Pesquisa no catálogo mundial com qualificadores específicos (*Geral*, *Título*, *Autor*, *ISBN* e *Editora*);
-  - Paginação externa real da Google Books (`startIndex`);
-  - Deteção inteligente de obras já existentes no acervo local (*"✓ Já no Acervo"*);
-  - Modal de pré-visualização completa com sinopse integral sem cortes e capa ampliada antes de importar;
-  - Desduplicação canónica de autores e editoras para evitar duplicações com pontuações ou espaçamentos diferentes (ex.: *J. R. R. Tolkien* vs *J.R.R. Tolkien*);
-  - Tratamento comercial fidedigno com suporte a *"Preço sob consulta"*;
-  - Sincronização não-destrutiva de metadados via interface (`🔄 Sync`) e via comando Artisan em lote;
-  - Utilização direta de capas em CDN de alta velocidade.
-- **Módulos CRUD Completos:** Gestão isolada de Editoras, Autores e Livros, com suporte a pesquisa, ordenação e paginação (24 itens por página).
-- **Exportação Excel:** Capacidade de exportar os dados da base de dados de Livros diretamente para ficheiro `.xlsx`, incluindo a nova coluna identificadora de `'Origem'` (*Acervo Local* vs *Google Books*).
-- **Segurança & Cifragem:** Todos os dados sensíveis e textuais (nomes, ISBNs, bibliografias, preços, fotos e logótipos) encontram-se 100% cifrados na base de dados através de Eloquent Casts (`encrypted`). Proteção de atributos sensíveis contra vulnerabilidades de *mass-assignment*.
+
+### 1. Autenticação & Controlo de Acessos (RBAC)
+- **Autenticação Segura com 2FA:** Suporte nativo a Autenticação de Dois Fatores (Two-Factor Authentication).
+- **Segregação Estrita de Papéis:**
+  - **Administradores:** Gestão de obras, receção de livros devolvidos, moderação de críticas, importação da Google Books e criação de novos administradores;
+  - **Cidadãos:** Requisição de exemplares disponíveis, consulta do histórico pessoal, submissão de avaliações e subscrição de alertas de disponibilidade.
+  - Novos registos públicos assumem automaticamente o papel de Cidadão. Novos Administradores só podem ser criados a partir do painel interno por outro Administrador autenticado.
+
+### 2. Estante Interativa & Catálogo Público
+- **Estante de Madeira ("Armário de Livros"):** Lombadas dinâmicas com texturas clássicas, pesquisa global, acordeão de filtros cruzados e crachás de disponibilidade em tempo real (*Disponível* / *Requisitado*).
+- **Modal "Livro Aberto Real":** Visualização detalhada estilo livro clássico com capa, sinopse, dados do autor e editora, e botão reativo de requisição.
+- **Navegação Híbrida (SPA) em Livros Relacionados:** As sugestões de leitura no modal abrem de forma fluida instantaneamente (via DOM ou endpoint JSON otimizado `/livros/{livro}/detalhes`) sem recarregamento de página.
+
+### 3. Módulo de Requisições & Devoluções (S2)
+- **Regras Estritas de Empréstimo:** Limite máximo de 3 livros ativos em simultâneo por cidadão e prazo automático de devolução (+5 dias).
+- **Numeração Sequencial Atómica:** Identificadores únicos (`#0001`, `#0002`) protegidos contra condições de corrida concorrentes com mecanismo de repetição (`retry(3, ...)`).
+- **Ciclo de Devolução:** Confirmação de receção exclusiva por Administradores com registo da data real de entrega e cálculo automático de dias decorridos.
+- **Cancelamento Temático:** Cidadãos podem cancelar as suas requisições ativas e Administradores podem cancelar qualquer requisição, libertando a obra de imediato no acervo.
+- **Painel de Indicadores (KPIs):** Três cartões de topo (*Requisições Ativas*, *Movimento nos últimos 30 dias* e *Livros entregues Hoje*), com escopo pessoal para Cidadãos e visão global para Administradores.
+- **Notificações por Email Assíncronas (`ShouldQueue`):** Disparo assíncrono de confirmações com capa incorporada e comando agendado de lembrete cordial na véspera da entrega (D-1).
+
+### 4. Integração com a Google Books API (S3)
+- **Pesquisa Externa com Qualificadores:** Modos de consulta específicos (*Geral*, *Título*, *Autor*, *ISBN* e *Editora*).
+- **Paginação Externa Real:** Navegação por blocos de resultados através do parâmetro `startIndex` da Google Books.
+- **Deteção Inteligente de Acervo:** Identificação visual se a obra encontrada já existe na biblioteca local (*"✓ Já no Acervo"*).
+- **Modal de Pré-visualização:** Consulta de sinopses completas sem limite de corte e capas em alta resolução antes da importação.
+- **Desduplicação Canónica:** Algoritmo que normaliza chaves alfanuméricas de autores e editoras, evitando registos repetidos com pontuações ou espaços diferentes (ex.: *J. R. R. Tolkien* vs *J.R.R. Tolkien*).
+- **Sincronização Não-Destrutiva:** Enriquecimento exclusivo de campos vazios sem sobrescrever dados locais já existentes.
+
+### 5. Críticas Literárias & Moderação Administrativa (S4)
+- **Submissão Pós-Entrega:** Cidadãos podem avaliar e comentar livros que tenham efetivamente requisitado e devolvido (classificação de 1 a 5 estrelas e crítica textual).
+- **Moderação Obrigatória:** Todas as avaliações nascem com o estado `'suspenso'`, disparando um email assíncrono de alerta aos Administradores com link direto para moderação.
+- **Painel de Moderação (`/admin/comentarios`):** Ecrã com abas por estado (*Suspensas*, *Ativas*, *Recusadas*, *Todas*), aprovação reversível e recusa com preenchimento obrigatório de justificação (5 a 500 caracteres).
+- **Feedback por Email ao Cidadão:** Disparo automático notificando a aprovação ou recusa (com a justificação do Administrador incluída em caso de rejeição).
+- **Publicação Condicional no Catálogo:** Apenas avaliações ativas são exibidas no modal de leitura na estante, garantindo total confidencialidade de submissões pendentes ou recusadas com renderização segura via nós do DOM (`textContent` anti-XSS).
+
+### 6. Motor Inteligente de Livros Relacionados (S4)
+- **Análise Semântica de Conteúdo:** Algoritmo de processamento textual que tokeniza títulos e sinopses, elimina *stop-words* da língua portuguesa e calcula o **Índice de Similaridade de Jaccard** ($\frac{|A \cap B|}{|A \cup B|}$).
+- **Ponderação Híbrida & Autoexclusão:** Aplicação de bónus para obras com autores partilhados, desempate determinístico e garantia de que o livro consultado nunca surge nas suas próprias recomendações com cache de 6 horas.
+
+### 7. Alertas de Disponibilidade / Lista de Espera (S4)
+- **Subscrição em Obras Requisitadas:** Quando um livro se encontra indisponível, o Cidadão autenticado pode clicar em *"🔔 Notificar-me quando disponível"*.
+- **Prevenção de Duplicados & Reativação:** Índice único composto `['user_id', 'livro_id']` na tabela `alertas`, com suporte a reativação inteligente de alertas previamente notificados caso o livro volte a ficar indisponível no futuro.
+- **Disparo Imediato na Devolução ou Cancelamento:** No momento exato em que a obra volta a ficar disponível, o sistema deteta todos os leitores em lista de espera e dispara o email `LivroDisponivelMail` de forma assíncrona.
 
 
 ## Arquitetura de Segurança, Cifragem e APP_KEY
 
-- **Cifragem de Dados Sensíveis:** Todos os dados do catálogo, incluindo nomes de livros, autores, editoras, ISBNs, bibliografias, preços, fotografias e logótipos, são armazenados de forma cifrada na base de dados MySQL. Esta implementação é realizada através dos *Eloquent Casts* do Laravel, utilizando o cast `encrypted` nos campos definidos.
-- **Proteção da `APP_KEY`:** A `APP_KEY`, armazenada no ficheiro `.env`, constitui a chave criptográfica utilizada pelo Laravel para a cifragem e decifragem dos dados. A sua alteração ou regeneração após a existência de dados cifrados invalida a capacidade de os decifrar, podendo resultar no erro `The MAC is invalid`. Por este motivo, o ficheiro `.env` encontra-se excluído do controlo de versões através do `.gitignore`, evitando a exposição da chave criptográfica.
-- **Processamento de Pesquisa e Ordenação em Memória:** Como os dados são armazenados na base de dados sob a forma de *ciphertext*, o MySQL não consegue aplicar diretamente operações como `LIKE` ou `ORDER BY` sobre os valores originais. Para ultrapassar esta limitação, a aplicação recupera e decifra os registos necessários, realizando posteriormente as operações de pesquisa, filtragem e ordenação em memória através das Coleções do Laravel. A paginação dos resultados é assegurada através da classe `LengthAwarePaginator`.
-- **Deteção de Duplicados e Limitação Conhecida:** A desduplicação automática e indexada no MySQL é realizada com base na coluna indexada `isbn_hash` (Blind Index via HMAC-SHA256). Como decisão de arquitetura, obras desprovidas de ISBN formal no catálogo da Google Books podem ser importadas manualmente sem bloqueio por título, prevenindo falsos positivos entre autores distintos com obras homónimas (ex.: títulos idênticos como *"Poesias"* ou *"Sonetos"* de escritores diferentes).
+- **Cifragem de Dados Sensíveis:** Todos os dados do catálogo, incluindo nomes de livros, autores, editoras, ISBNs, bibliografias, preços, fotografias e logótipos, são armazenados de forma cifrada na base de dados MySQL através do cast `encrypted`.
+- **Proteção da `APP_KEY`:** A `APP_KEY`, armazenada no ficheiro `.env`, constitui a chave criptográfica utilizada pelo Laravel para a cifragem e decifragem dos dados. Por este motivo, o ficheiro `.env` encontra-se protegido pelo `.gitignore`.
+- **Blind Index (`isbn_hash`):** Implementação de coluna determinística indexada no MySQL (HMAC-SHA256) em migração isolada, viabilizando pesquisas de duplicados instantâneas sem necessidade de carregar coleções em memória (`Livro::all()`).
+- **Deteção de Duplicados e Limitação Conhecida:** A desduplicação automática e indexada no MySQL é realizada com base no `isbn_hash`. Como decisão de arquitetura, obras desprovidas de ISBN formal no catálogo da Google Books podem ser importadas manualmente sem bloqueio por título, prevenindo falsos positivos entre autores distintos com obras homónimas.
+- **Proteção de Mass-Assignment:** O atributo sensível `role` encontra-se estritamente excluído do `$fillable` do modelo `User`, sendo atribuído unicamente no servidor através de `forceCreate()` / `forceFill()`.
 
 
 ## Requisitos do Sistema
@@ -55,8 +80,7 @@ Sistema de Gestão de Biblioteca desenvolvido em **Laravel**, com autenticação
    php artisan key:generate
    ```
 5. Criar a base de dados `biblioteca` no MySQL.
-6. Executar as migrações e o povoamento inicial.
-   *(Nota: O comando `migrate:fresh --seed` é destrutivo e elimina todos os dados existentes, sendo adequado apenas para instalação limpa e desenvolvimento).*
+6. Executar as migrações e o povoamento inicial:
    ```bash
    php artisan migrate:fresh --seed
    ```
@@ -69,21 +93,15 @@ Sistema de Gestão de Biblioteca desenvolvido em **Laravel**, com autenticação
    php artisan serve
    ```
 
-## Configuração do Administrador
-As credenciais da conta de administrador devem ser configuradas localmente no ficheiro `.env` através das variáveis:
-* `ADMIN_NAME`
-* `ADMIN_EMAIL`
-* `ADMIN_PASSWORD`
-
-Novos Administradores apenas podem ser criados a partir do painel de administração (`/admin/utilizadores/criar`) por utilizadores autenticados com o papel de Administrador.
-
-
-## Comandos de Automação e Sincronização (Artisan)
+## Comandos de Fila, Automação e Sincronização (Artisan)
+- **Processamento de Fila de Emails (Queue):** Obrigatório para o envio dos emails das avaliações (S4), dos alertas de disponibilidade (S4) e restantes notificações. Sem um worker ativo, os emails ficam apenas na fila:
+  ```bash
+  php artisan queue:work
+  ```
 - **Lembrete de Devolução (D-1):** Envia um email cordial aos cidadãos com requisições a terminar no dia seguinte:
   ```bash
   php artisan requisicoes:enviar-lembretes
   ```
-
 - **Sincronização em Lote com a Google Books:** Enriquece e preenche campos em falta no acervo local sem substituir dados existentes:
   ```bash
   php artisan livros:sincronizar-google --limit=10
@@ -91,7 +109,7 @@ Novos Administradores apenas podem ser criados a partir do painel de administra�
 
 
 ## Testes Automatizados
-O projeto conta com uma suite completa de testes de integração e testes unitários com cobertura de 100% de aprovação (44 testes e 133 asserções), incluindo simulações de API externa com `Http::fake()`:
+O projeto conta com uma suite completa de testes de integração e testes unitários com **cobertura de 100% de aprovação (70 testes aprovados, 7 ignorados e 229 asserções com zero falhas)**:
 ```bash
 php artisan test
 ```

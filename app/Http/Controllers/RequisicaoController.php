@@ -140,24 +140,7 @@ class RequisicaoController extends Controller
             'status' => 'entregue',
         ]);
 
-        $livro = $requisicao->livro;
-        if ($livro && $livro->isDisponivel()) {
-            $alertasPendentes = Alerta::with('user')
-                ->where('livro_id', $livro->id)
-                ->whereNull('notificado_at')
-                ->get();
-
-            foreach ($alertasPendentes as $alerta) {
-                try {
-                    if ($alerta->user && $alerta->user->email) {
-                        Mail::to($alerta->user->email)->send(new LivroDisponivelMail($livro, $alerta->user));
-                        $alerta->update(['notificado_at' => now()]);
-                    }
-                } catch (Throwable $e) {
-                    Log::error('Falha ao enviar alerta de livro disponível ao cidadão: ' . $e->getMessage());
-                }
-            }
-        }
+        $this->notificarAlertasDisponibilidade($requisicao->livro);
 
         return redirect()->back()->with('status', __('Livro rececionado e devolvido com sucesso.'));
     }
@@ -178,6 +161,31 @@ class RequisicaoController extends Controller
             'status' => 'cancelada',
         ]);
 
+        $this->notificarAlertasDisponibilidade($requisicao->livro);
+
         return redirect()->back()->with('status', __('Requisição cancelada com sucesso.'));
+    }
+
+    protected function notificarAlertasDisponibilidade(?Livro $livro): void
+    {
+        if (!$livro || !$livro->isDisponivel()) {
+            return;
+        }
+
+        $alertasPendentes = Alerta::with('user')
+            ->where('livro_id', $livro->id)
+            ->whereNull('notificado_at')
+            ->get();
+
+        foreach ($alertasPendentes as $alerta) {
+            try {
+                if ($alerta->user && $alerta->user->email) {
+                    Mail::to($alerta->user->email)->send(new LivroDisponivelMail($livro, $alerta->user));
+                    $alerta->update(['notificado_at' => now()]);
+                }
+            } catch (Throwable $e) {
+                Log::error('Falha ao enviar alerta de livro disponível ao cidadão: ' . $e->getMessage());
+            }
+        }
     }
 }

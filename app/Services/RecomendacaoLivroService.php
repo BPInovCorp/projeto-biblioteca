@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Livro;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Str;
 
 class RecomendacaoLivroService
@@ -11,15 +12,18 @@ class RecomendacaoLivroService
     {
         $limiteSeguro = max(1, min(10, $limite));
 
-        $textoLivro = ($livro->nome ?? '') . ' ' . ($livro->bibliografia ?? '');
-        $termosLivro = $this->extrairPalavrasChave($textoLivro);
-        $autoresLivroIds = $livro->autores->pluck('id')->all();
+        $cacheKey = "rec_livro_{$livro->id}_{$limiteSeguro}";
 
-        if (empty($termosLivro) && empty($autoresLivroIds)) {
-            return [];
-        }
+        return Cache::remember($cacheKey, now()->addHours(6), function () use ($livro, $limiteSeguro) {
+            $textoLivro = ($livro->nome ?? '') . ' ' . ($livro->bibliografia ?? '');
+            $termosLivro = $this->extrairPalavrasChave($textoLivro);
+            $autoresLivroIds = $livro->autores->pluck('id')->all();
 
-        $candidatos = Livro::with(['autores'])->where('id', '!=', $livro->id)->get();
+            if (empty($termosLivro) && empty($autoresLivroIds)) {
+                return [];
+            }
+
+            $candidatos = Livro::with(['autores'])->where('id', '!=', $livro->id)->get();
 
         $pontuados = [];
 
@@ -58,6 +62,7 @@ class RecomendacaoLivroService
         });
 
         return array_slice($pontuados, 0, $limiteSeguro);
+        });
     }
 
     public function extrairPalavrasChave(string $texto): array

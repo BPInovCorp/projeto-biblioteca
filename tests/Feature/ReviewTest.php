@@ -201,8 +201,8 @@ class ReviewTest extends TestCase
     {
         Mail::fake();
 
-        $admin1 = $this->criarAdmin('admin1@teste.pt');
-        $admin2 = $this->criarAdmin('admin2@teste.pt');
+        $this->criarAdmin('admin1@teste.pt');
+        $this->criarAdmin('admin2@teste.pt');
         $cidadao = $this->criarCidadao();
         $livro = $this->criarLivro();
         $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
@@ -213,7 +213,7 @@ class ReviewTest extends TestCase
             'comentario' => 'Obra marcante, excelente recomendação.',
         ]);
 
-        Mail::assertSent(NovoComentarioAdminMail::class, 2);
+        Mail::assertQueued(NovoComentarioAdminMail::class, 2);
     }
 
     public function test_apenas_admin_pode_aceder_ao_painel_de_moderacao(): void
@@ -254,8 +254,8 @@ class ReviewTest extends TestCase
         $this->assertEquals('ativo', $comentario->status);
         $this->assertNull($comentario->justificacao);
 
-        Mail::assertSent(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
-            return $mail->hasTo($cidadao->email) && $mail->comentario->status === 'ativo';
+        Mail::assertQueued(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
+            return $mail->hasTo($cidadao->email) && $mail->estado === 'ativo';
         });
     }
 
@@ -291,8 +291,9 @@ class ReviewTest extends TestCase
         $this->assertEquals('recusado', $comentario->status);
         $this->assertEquals('O comentário viola as normas de respeito comunitário.', $comentario->justificacao);
 
-        Mail::assertSent(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
-            return $mail->hasTo($cidadao->email) && $mail->comentario->status === 'recusado';
+        Mail::assertQueued(EstadoComentarioCidadaoMail::class, function ($mail) use ($cidadao) {
+            return $mail->hasTo($cidadao->email) && $mail->estado === 'recusado'
+                && $mail->justificacao === 'O comentário viola as normas de respeito comunitário.';
         });
     }
 
@@ -303,22 +304,44 @@ class ReviewTest extends TestCase
         $livro = $this->criarLivro();
         $requisicao = $this->criarRequisicao($cidadao, $livro, 'entregue');
 
-        $comentario = Comentario::create([
+        $comentarioAtivo = Comentario::create([
             'user_id' => $cidadao->id,
             'livro_id' => $livro->id,
             'requisicao_id' => $requisicao->id,
             'classificacao' => 5,
-            'comentario' => 'Avaliação já aprovada.',
+            'comentario' => 'Avaliação já ativa.',
             'status' => 'ativo',
         ]);
 
-        $response = $this->actingAs($admin)->post(route('admin.comentarios.aprovar', $comentario));
-        $response->assertSessionHas('error');
+        $responseAprovarNovamente = $this->actingAs($admin)->post(route('admin.comentarios.aprovar', $comentarioAtivo));
+        $responseAprovarNovamente->assertSessionHas('error');
 
-        $responseRecusar = $this->actingAs($admin)->post(route('admin.comentarios.recusar', $comentario), [
-            'justificacao' => 'Tentativa indevida de recusar.',
+        $requisicao2 = Requisicao::create([
+            'numero_sequencial' => 2,
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'foto_cidadao' => $cidadao->profile_photo_url,
+            'data_requisicao' => now()->subDays(6)->toDateString(),
+            'data_fim_prevista' => now()->toDateString(),
+            'data_devolucao' => now()->toDateString(),
+            'dias_decorridos' => 6,
+            'status' => 'entregue',
         ]);
-        $responseRecusar->assertSessionHas('error');
+
+        $comentarioRecusado = Comentario::create([
+            'user_id' => $cidadao->id,
+            'livro_id' => $livro->id,
+            'requisicao_id' => $requisicao2->id,
+            'classificacao' => 1,
+            'comentario' => 'Avaliação já recusada.',
+            'status' => 'recusado',
+            'justificacao' => 'Motivo inicial.',
+        ]);
+
+        $responseRecusarNovamente = $this->actingAs($admin)->post(route('admin.comentarios.recusar', $comentarioRecusado), [
+            'justificacao' => 'Novo motivo.',
+        ]);
+        $responseRecusarNovamente->assertSessionHas('error');
     }
 
     public function test_apenas_reviews_ativas_sao_apresentadas_no_catalogo_publico(): void

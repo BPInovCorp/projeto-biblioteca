@@ -30,28 +30,28 @@
                 <div class="stat">
                     <div class="stat-figure text-primary text-3xl">📖</div>
                     <div class="stat-title font-semibold text-xs uppercase tracking-wider">Total de Livros</div>
-                    <div class="stat-value text-primary font-serif font-black">{{ \App\Models\Livro::count() }}</div>
+                    <div class="stat-value text-primary font-serif font-black">{{ $totalLivros }}</div>
                     <div class="stat-desc text-xs opacity-70">Obras do arquivo digital</div>
                 </div>
 
                 <div class="stat">
                     <div class="stat-figure text-secondary text-3xl">✍️</div>
                     <div class="stat-title font-semibold text-xs uppercase tracking-wider">Autores Registados</div>
-                    <div class="stat-value text-secondary font-serif font-black">{{ \App\Models\Autor::count() }}</div>
+                    <div class="stat-value text-secondary font-serif font-black">{{ $totalAutores }}</div>
                     <div class="stat-desc text-xs opacity-70">Escritores catalogados</div>
                 </div>
 
                 <div class="stat">
                     <div class="stat-figure text-accent text-3xl">🏢</div>
                     <div class="stat-title font-semibold text-xs uppercase tracking-wider">Editoras Parceiras</div>
-                    <div class="stat-value text-accent font-serif font-black">{{ \App\Models\Editora::count() }}</div>
+                    <div class="stat-value text-accent font-serif font-black">{{ $totalEditoras }}</div>
                     <div class="stat-desc text-xs opacity-70">Certificações editoriais</div>
                 </div>
 
                 <div class="stat">
                     <div class="stat-figure text-warning text-3xl">⏳</div>
                     <div class="stat-title font-semibold text-xs uppercase tracking-wider">{{ __('Avaliações Pendentes') }}</div>
-                    <div class="stat-value text-warning font-serif font-black">{{ \App\Models\Comentario::where('status', 'suspenso')->count() }}</div>
+                    <div class="stat-value text-warning font-serif font-black">{{ $totalComentariosSuspensos }}</div>
                     <div class="stat-desc text-xs opacity-70">{{ __('A aguardar moderação') }}</div>
                 </div>
             </div>

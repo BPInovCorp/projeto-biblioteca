@@ -165,7 +165,7 @@ class AlertaDisponibilidadeTest extends TestCase
 
         $this->assertTrue($livro->fresh()->isDisponivel());
 
-        Mail::assertSent(LivroDisponivelMail::class, function ($mail) use ($cidadaoInteressado, $livro) {
+        Mail::assertQueued(LivroDisponivelMail::class, function ($mail) use ($cidadaoInteressado, $livro) {
             return $mail->hasTo($cidadaoInteressado->email) && $mail->livro->id === $livro->id;
         });
 

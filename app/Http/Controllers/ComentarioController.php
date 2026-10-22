@@ -6,6 +6,7 @@ use App\Mail\NovoComentarioAdminMail;
 use App\Models\Comentario;
 use App\Models\Requisicao;
 use App\Models\User;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -38,17 +39,21 @@ class ComentarioController extends Controller
             return redirect()->back()->with('error', __('Já submeteu uma avaliação para esta requisição.'));
         }
 
-        $comentario = DB::transaction(function () use ($validated, $user, $requisicao) {
-            return Comentario::create([
-                'user_id' => $user->id,
-                'livro_id' => $requisicao->livro_id,
-                'requisicao_id' => $requisicao->id,
-                'classificacao' => $validated['classificacao'],
-                'comentario' => trim($validated['comentario']),
-                'status' => 'suspenso',
-                'justificacao' => null,
-            ]);
-        });
+        try {
+            $comentario = DB::transaction(function () use ($validated, $user, $requisicao) {
+                return Comentario::create([
+                    'user_id' => $user->id,
+                    'livro_id' => $requisicao->livro_id,
+                    'requisicao_id' => $requisicao->id,
+                    'classificacao' => $validated['classificacao'],
+                    'comentario' => trim($validated['comentario']),
+                    'status' => 'suspenso',
+                    'justificacao' => null,
+                ]);
+            });
+        } catch (QueryException) {
+            return redirect()->back()->with('error', __('Já submeteu uma avaliação para esta requisição.'));
+        }
 
         try {
             $comentario->load(['user', 'livro']);

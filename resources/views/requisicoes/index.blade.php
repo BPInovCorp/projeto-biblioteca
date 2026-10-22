@@ -192,7 +192,7 @@
                                                             </span>
                                                         @endif
                                                     @elseif(auth()->id() === $requisicao->user_id)
-                                                        <button type="button" class="btn btn-warning btn-xs text-stone-900 font-bold shadow-sm" onclick="abrirmodalcriarreview(this)" data-requisicao-id="{{ $requisicao->id }}" data-livro-titulo="{{ $requisicao->livro->nome }}">
+                                                        <button type="button" class="btn btn-warning btn-xs text-stone-900 font-bold shadow-sm" onclick="abrirModalCriarReview(this)" data-requisicao-id="{{ $requisicao->id }}" data-livro-titulo="{{ $requisicao->livro->nome }}">
                                                             ⭐ {{ __('avaliar livro') }}
                                                         </button>
                                                     @else
@@ -457,7 +457,13 @@
             if (tbody) {
                 tbody.innerHTML = '';
                 if (historico.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 opacity-60">Sem registos de requisições.</td></tr>';
+                    const trVazio = document.createElement('tr');
+                    const tdVazio = document.createElement('td');
+                    tdVazio.colSpan = 4;
+                    tdVazio.className = 'text-center py-4 opacity-60';
+                    tdVazio.textContent = 'Sem registos de requisições.';
+                    trVazio.appendChild(tdVazio);
+                    tbody.appendChild(trVazio);
                 } else {
                     historico.forEach(function(r) {
                         let badgeClass = 'badge-warning text-stone-900';
@@ -471,10 +477,30 @@
                         }
 
                         const tr = document.createElement('tr');
-                        tr.innerHTML = '<td class="font-mono font-bold text-primary">#' + r.numero + '</td>'
-                            + '<td class="font-bold">' + r.livro + '</td>'
-                            + '<td class="font-mono text-[11px]">' + r.inicio + ' → ' + r.fim + '</td>'
-                            + '<td><span class="badge ' + badgeClass + ' badge-xs font-bold">' + badgeText + '</span></td>';
+
+                        const tdNumero = document.createElement('td');
+                        tdNumero.className = 'font-mono font-bold text-primary';
+                        tdNumero.textContent = '#' + r.numero;
+
+                        const tdLivro = document.createElement('td');
+                        tdLivro.className = 'font-bold';
+                        tdLivro.textContent = r.livro;
+
+                        const tdDatas = document.createElement('td');
+                        tdDatas.className = 'font-mono text-[11px]';
+                        tdDatas.textContent = r.inicio + ' → ' + r.fim;
+
+                        const tdEstado = document.createElement('td');
+                        const badgeSpan = document.createElement('span');
+                        badgeSpan.className = 'badge ' + badgeClass + ' badge-xs font-bold';
+                        badgeSpan.textContent = badgeText;
+                        tdEstado.appendChild(badgeSpan);
+
+                        tr.appendChild(tdNumero);
+                        tr.appendChild(tdLivro);
+                        tr.appendChild(tdDatas);
+                        tr.appendChild(tdEstado);
+
                         tbody.appendChild(tr);
                     });
                 }
@@ -492,6 +518,5 @@
             const modal = document.getElementById('modal-criar-review');
             if (modal) modal.showModal();
         };
-        window.abrirmodalcriarreview = window.abrirModalCriarReview;
     </script>
 </x-app-layout>

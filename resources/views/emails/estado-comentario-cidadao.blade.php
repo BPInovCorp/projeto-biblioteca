@@ -1,5 +1,5 @@
 <x-mail::message>
-@if($comentario->status === 'ativo')
+@if($estado === 'ativo')
 # {{ __('Avaliação Aprovada e Publicada') }}
 
 {{ __('Olá, :nome!', ['nome' => $comentario->user->name]) }}
@@ -26,7 +26,7 @@
 **{{ __('Obra:') }}** {{ $comentario->livro->nome }}  
 **{{ __('Estado:') }}** {{ __('Recusada') }}  
 **{{ __('Justificação da Moderação:') }}**  
-{{ $comentario->justificacao }}
+{{ $justificacao }}
 </x-mail::panel>
 
 {{ __('O comentário submetido:') }}  

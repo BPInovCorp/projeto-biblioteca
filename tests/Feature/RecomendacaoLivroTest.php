@@ -162,4 +162,31 @@ class RecomendacaoLivroTest extends TestCase
         $this->assertContains('oceanos', $termos1);
         $this->assertNotContains('dos', $termos1);
     }
+
+    public function test_endpoint_de_detalhes_do_livro_devolve_json_correto(): void
+    {
+        $livro = $this->criarLivroComDetalhes('Livro Detalhe JSON', '9789890000099', 'Sinopse pública de teste.');
+
+        $response = $this->get(route('livros.detalhes', $livro));
+
+        $response->assertOk();
+        $response->assertJsonStructure([
+            'id',
+            'titulo',
+            'autor',
+            'editora',
+            'isbn',
+            'preco',
+            'bibliografia',
+            'capa',
+            'disponivel',
+            'temAlerta',
+            'avaliacoes',
+            'relacionados',
+        ]);
+        $response->assertJson([
+            'id' => $livro->id,
+            'titulo' => 'Livro Detalhe JSON',
+        ]);
+    }
 }
