@@ -92,4 +92,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Alerta::class, 'user_id');
     }
+
+    public function carrinhoItems(): HasMany
+    {
+        return $this->hasMany(CarrinhoItem::class, 'user_id');
+    }
+
+    public function encomendas(): HasMany
+    {
+        return $this->hasMany(Encomenda::class, 'user_id');
+    }
 }

@@ -25,6 +25,15 @@
                         <a href="{{ route('requisicoes.index') }}" class="btn btn-ghost btn-sm">
                             Requisições
                         </a>
+                        <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span>{{ __('Carrinho') }}</span>
+                            @if(auth()->user()->carrinhoItems()->sum('quantidade') > 0)
+                                <span class="badge badge-primary badge-xs font-bold">{{ auth()->user()->carrinhoItems()->sum('quantidade') }}</span>
+                            @endif
+                        </a>
                         <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
                             O meu Perfil
                         </a>
@@ -377,9 +386,22 @@
                                                 </button>
                                             </form>
                                         </div>
+
+                                        <form id="form-adicionar-carrinho" method="POST" action="" class="w-full mt-1">
+                                            @csrf
+                                            <div class="join w-full shadow-sm">
+                                                <input type="number" name="quantidade" id="input-carrinho-quantidade" value="1" min="1" class="input input-bordered input-sm join-item w-16 bg-[#fdfbf7] text-neutral-900 text-center font-bold text-xs" />
+                                                <button type="submit" id="btn-adicionar-carrinho" class="btn btn-secondary btn-sm join-item grow font-bold text-xs shadow-md">
+                                                    🛒 {{ __('Adicionar ao Carrinho') }}
+                                                </button>
+                                            </div>
+                                        </form>
                                     @else
                                         <a href="{{ route('login') }}" class="btn btn-outline btn-primary w-full text-xs">
                                             {{ __('Iniciar Sessão para Requisitar') }}
+                                        </a>
+                                        <a href="{{ route('login') }}" class="btn btn-outline btn-secondary w-full text-xs mt-1">
+                                            🛒 {{ __('Iniciar Sessão para Comprar') }}
                                         </a>
                                     @endauth
                                 </div>
@@ -586,6 +608,16 @@
                     const inputLivroId = document.getElementById('input-requisicao-livro-id');
                     if (inputLivroId) {
                         inputLivroId.value = dados.id;
+                    }
+
+                    const formCarrinho = document.getElementById('form-adicionar-carrinho');
+                    if (formCarrinho) {
+                        formCarrinho.action = '/carrinho/' + dados.id;
+                    }
+
+                    const inputQtd = document.getElementById('input-carrinho-quantidade');
+                    if (inputQtd) {
+                        inputQtd.value = 1;
                     }
 
                     const confirmarTitulo = document.getElementById('confirmar-livro-titulo');

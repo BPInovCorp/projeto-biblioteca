@@ -58,6 +58,21 @@ class Livro extends Model
         return $this->hasMany(Alerta::class, 'livro_id');
     }
 
+    public function carrinhoItems(): HasMany
+    {
+        return $this->hasMany(CarrinhoItem::class, 'livro_id');
+    }
+
+    public function encomendaItems(): HasMany
+    {
+        return $this->hasMany(EncomendaItem::class, 'livro_id');
+    }
+
+    public function getPrecoCentimosAttribute(): int
+    {
+        return (int) round(((float) ($this->preco ?? 0)) * 100);
+    }
+
     public function isDisponivel(): bool
     {
         if ($this->relationLoaded('requisicoes')) {

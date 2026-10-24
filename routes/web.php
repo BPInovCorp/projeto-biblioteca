@@ -4,6 +4,7 @@ use App\Http\Controllers\AdminComentarioController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\AutorController;
+use App\Http\Controllers\CarrinhoController;
 use App\Http\Controllers\ComentarioController;
 use App\Http\Controllers\EditoraController;
 use App\Http\Controllers\GoogleBooksController;
@@ -126,7 +127,13 @@ Route::middleware([
     Route::post('/requisicoes', [RequisicaoController::class, 'store'])->name('requisicoes.store');
     Route::post('/requisicoes/{requisicao}/cancelar', [RequisicaoController::class, 'cancelar'])->name('requisicoes.cancelar');
     Route::post('/comentarios', [ComentarioController::class, 'store'])->name('comentarios.store');
-        Route::post('/alertas', [AlertaController::class, 'store'])->name('alertas.store');
+    Route::post('/alertas', [AlertaController::class, 'store'])->name('alertas.store');
+
+    Route::get('/carrinho', [CarrinhoController::class, 'index'])->name('carrinho.index');
+    Route::delete('/carrinho', [CarrinhoController::class, 'limpar'])->name('carrinho.limpar');
+    Route::post('/carrinho/{livro}', [CarrinhoController::class, 'adicionar'])->name('carrinho.adicionar');
+    Route::patch('/carrinho/itens/{item}', [CarrinhoController::class, 'atualizar'])->name('carrinho.atualizar');
+    Route::delete('/carrinho/itens/{item}', [CarrinhoController::class, 'remover'])->name('carrinho.remover');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);
