@@ -5,7 +5,9 @@ use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\AutorController;
 use App\Http\Controllers\CarrinhoController;
+use App\Http\Controllers\CheckoutController;
 use App\Http\Controllers\ComentarioController;
+use App\Http\Controllers\StripeWebhookController;
 use App\Http\Controllers\EditoraController;
 use App\Http\Controllers\GoogleBooksController;
 use App\Http\Controllers\LivroController;
@@ -100,6 +102,7 @@ Route::get('/', function (Request $request) {
 });
 
 Route::get('/livros/{livro}/detalhes', [LivroController::class, 'detalhes'])->name('livros.detalhes');
+Route::post('/stripe/webhook', [StripeWebhookController::class, 'handle'])->name('stripe.webhook');
 
 Route::middleware([
     'auth:sanctum',
@@ -134,6 +137,12 @@ Route::middleware([
     Route::post('/carrinho/{livro}', [CarrinhoController::class, 'adicionar'])->name('carrinho.adicionar');
     Route::patch('/carrinho/itens/{item}', [CarrinhoController::class, 'atualizar'])->name('carrinho.atualizar');
     Route::delete('/carrinho/itens/{item}', [CarrinhoController::class, 'remover'])->name('carrinho.remover');
+
+    Route::get('/checkout/morada', [CheckoutController::class, 'morada'])->name('checkout.morada');
+    Route::post('/checkout/morada', [CheckoutController::class, 'guardarMorada'])->name('checkout.guardar-morada');
+    Route::get('/checkout/{encomenda}/pagamento', [CheckoutController::class, 'pagamento'])->name('checkout.pagamento');
+    Route::get('/checkout/{encomenda}/sucesso', [CheckoutController::class, 'sucesso'])->name('checkout.sucesso');
+    Route::get('/checkout/{encomenda}/cancelado', [CheckoutController::class, 'cancelado'])->name('checkout.cancelado');
 
     Route::middleware(\App\Http\Middleware\AdminMiddleware::class)->group(function () {
         Route::resource('editoras', EditoraController::class)->except(['show']);
