@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\AdminComentarioController;
+use App\Http\Controllers\AdminEncomendaController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\AutorController;
@@ -159,5 +160,7 @@ Route::middleware([
         Route::get('admin/comentarios', [AdminComentarioController::class, 'index'])->name('admin.comentarios.index');
         Route::post('admin/comentarios/{comentario}/aprovar', [AdminComentarioController::class, 'aprovar'])->name('admin.comentarios.aprovar');
         Route::post('admin/comentarios/{comentario}/recusar', [AdminComentarioController::class, 'recusar'])->name('admin.comentarios.recusar');
+        Route::get('admin/encomendas', [AdminEncomendaController::class, 'index'])->name('admin.encomendas.index');
+        Route::get('admin/encomendas/{encomenda}', [AdminEncomendaController::class, 'show'])->name('admin.encomendas.show');
     });
 });
