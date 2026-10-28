@@ -9,7 +9,10 @@ use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Stripe\Exception\SignatureVerificationException;
+use Stripe\Refund;
+use Stripe\Stripe;
 use Stripe\Webhook;
 use UnexpectedValueException;
 
@@ -76,9 +79,31 @@ class StripeWebhookController extends Controller
                         throw new Exception('A moeda da sessão Stripe não é EUR.');
                     }
 
-                    if ($encomenda->estado_pagamento !== Encomenda::PAGAMENTO_PAGO) {
+                    if ($encomenda->estado_pagamento === Encomenda::PAGAMENTO_PAGO) {
+                        if (! empty($session->payment_intent) && $encomenda->stripe_payment_intent_id !== $session->payment_intent) {
+                            Stripe::setApiKey(config('services.stripe.secret'));
+
+                            try {
+                                    Refund::create([
+                                        'payment_intent' => $session->payment_intent,
+                                        'reason' => 'duplicate',
+                                    ], [
+                                        'idempotency_key' => 'refund_' . $session->payment_intent,
+                                    ]);
+                                    Log::info("Reembolso de pagamento duplicado executado com sucesso para a encomenda #{$encomenda->numero}, intent: {$session->payment_intent}");
+                                } catch (Exception $e) {
+                                Log::error("Falha ao emitir reembolso de pagamento duplicado para a encomenda #{$encomenda->numero}, intent: {$session->payment_intent}. Erro: {$e->getMessage()}");
+                                throw new Exception("Falha no reembolso de cobranca duplicada. O webhook sera repetido pela Stripe: " . $e->getMessage());
+                            }
+                        }
+                    } else {
+                        if (! empty($encomenda->stripe_session_id) && $session->id !== $encomenda->stripe_session_id) {
+                            Log::warning("Sessao Stripe recebida ({$session->id}) difere da sessao ativa ({$encomenda->stripe_session_id}) na encomenda #{$encomenda->numero}. Pagamento honrado e registo atualizado.");
+                        }
+
                         $encomenda->update([
                             'estado_pagamento' => Encomenda::PAGAMENTO_PAGO,
+                            'stripe_session_id' => $session->id,
                             'stripe_payment_intent_id' => $session->payment_intent ?? null,
                         ]);
 
@@ -108,7 +133,7 @@ class StripeWebhookController extends Controller
 
                 return response()->json(['erro' => 'Erro de base de dados ao processar transação.'], 500);
             } catch (Exception $e) {
-                return response()->json(['erro' => $e->getMessage()], 400);
+                return response()->json(['erro' => $e->getMessage()], 500);
             }
         }
 

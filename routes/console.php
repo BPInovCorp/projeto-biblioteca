@@ -9,4 +9,4 @@ Artisan::command('inspire', function () {
 })->purpose('Display an inspiring quote');
 
 Schedule::command('requisicoes:enviar-lembretes')->dailyAt('09:00');
-Schedule::command('biblioteca:lembrete-carrinho-abandonado')->hourly();
+Schedule::command('biblioteca:lembrete-carrinho-abandonado')->everytenminutes();

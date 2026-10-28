@@ -166,6 +166,14 @@ class LivroController extends Controller
 
     public function destroy(Livro $livro)
     {
+        if ($livro->encomendaItems()->exists()) {
+            return redirect()->route('livros.index')->with('error', 'Não é possível eliminar este livro porque existem encomendas comerciais associadas ao mesmo.');
+        }
+
+        if ($livro->requisicoes()->where('status', 'ativa')->exists()) {
+            return redirect()->route('livros.index')->with('error', 'Não é possível eliminar este livro porque possui requisições ativas.');
+        }
+
         $livro->autores()->detach();
         $livro->delete();
 

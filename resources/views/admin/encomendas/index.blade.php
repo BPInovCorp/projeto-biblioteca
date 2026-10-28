@@ -1,24 +1,22 @@
 <x-app-layout>
-    <x-slot name="header">
-        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-            <div>
-                <h2 class="font-semibold text-xl text-base-content leading-tight">
-                    {{ __('Gestão de Encomendas') }}
-                </h2>
-                <p class="text-xs text-base-content/60 mt-0.5">
-                    {{ __('Auditoria e monitorização de todas as encomendas da biblioteca.') }}
-                </p>
-            </div>
-            <div class="flex items-center gap-2">
-                <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">
-                    {{ __('Painel de Controlo') }}
-                </a>
-            </div>
-        </div>
-    </x-slot>
-
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-base-100 p-6 rounded-2xl shadow-sm border border-base-300">
+                <div>
+                    <h2 class="font-semibold text-2xl text-base-content leading-tight">
+                        {{ __('Gestão de Encomendas') }}
+                    </h2>
+                    <p class="text-xs text-base-content/60 mt-1">
+                        {{ __('Auditoria e monitorização de todas as encomendas da biblioteca.') }}
+                    </p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm font-bold">
+                        {{ __('Painel de Controlo') }}
+                    </a>
+                </div>
+            </div>
 
             <div class="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 bg-base-100 p-4 rounded-2xl shadow-sm border border-base-300">
                 <div class="tabs tabs-boxed bg-base-200/80 p-1 rounded-xl">
