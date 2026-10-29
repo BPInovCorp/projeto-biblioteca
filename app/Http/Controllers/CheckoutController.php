@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Encomenda;
+use App\Services\AuditoriaService;
 use App\Services\CarrinhoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -19,9 +20,16 @@ use Stripe\Stripe;
 
 class CheckoutController extends Controller
 {
+    protected CarrinhoService $carrinhoService;
+    protected AuditoriaService $auditoriaService;
+
     public function __construct(
-        protected CarrinhoService $carrinhoService
-    ) {}
+        CarrinhoService $carrinhoService,
+        AuditoriaService $auditoriaService
+    ) {
+        $this->carrinhoService = $carrinhoService;
+        $this->auditoriaService = $auditoriaService;
+    }
 
     public function morada(Request $request): View|RedirectResponse
     {
@@ -107,6 +115,13 @@ class CheckoutController extends Controller
         }
 
         session(['checkout_encomenda_id' => $encomenda->id]);
+
+        $this->auditoriaService->registar(
+            'encomendas',
+            $encomenda->id,
+            "iniciou a encomenda #{$encomenda->numero} no valor de {$encomenda->total_formatado}",
+            $user
+        );
 
         return redirect()->route('checkout.pagamento', $encomenda);
     }
@@ -213,6 +228,13 @@ class CheckoutController extends Controller
     public function cancelado(request $request, encomenda $encomenda): view
     {
         abort_if($encomenda->user_id !== $request->user()->id, 403);
+
+        $this->auditoriaService->registar(
+            'encomendas',
+            $encomenda->id,
+            "cancelou a tentativa de pagamento da encomenda #{$encomenda->numero}",
+            $request->user()
+        );
 
         return view('checkout.cancelado', compact('encomenda'));
     }

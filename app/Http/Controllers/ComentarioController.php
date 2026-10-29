@@ -6,6 +6,7 @@ use App\Mail\NovoComentarioAdminMail;
 use App\Models\Comentario;
 use App\Models\Requisicao;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -16,6 +17,13 @@ use Throwable;
 
 class ComentarioController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -57,6 +65,14 @@ class ComentarioController extends Controller
 
         try {
             $comentario->load(['user', 'livro']);
+
+            $this->auditoriaService->registar(
+                'avaliações',
+                $comentario->id,
+                "submeteu avaliação de {$comentario->classificacao} estrela(s) para o livro '{$comentario->livro->nome}'",
+                $user
+            );
+
             $administradores = user::where('role', 'admin')->get();
             foreach ($administradores as $admin) {
                 mail::to($admin->email)->send(new novocomentarioadminmail($comentario));

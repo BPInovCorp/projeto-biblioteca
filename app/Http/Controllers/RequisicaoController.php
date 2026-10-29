@@ -8,6 +8,7 @@ use App\Models\Alerta;
 use App\Models\Livro;
 use App\Models\Requisicao;
 use App\Models\User;
+use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -19,6 +20,10 @@ use Throwable;
 
 class RequisicaoController extends Controller
 {
+    public function __construct(
+        protected AuditoriaService $auditoriaService
+    ) {}
+
     public function index(Request $request): View
     {
         $user = $request->user();
@@ -95,6 +100,13 @@ class RequisicaoController extends Controller
 
         $requisicao->load(['user', 'livro.editora', 'livro.autores']);
 
+        $this->auditoriaService->registar(
+            'Requisições',
+            $requisicao->id,
+            "Criou a requisição #{$requisicao->numero_sequencial} para o livro '{$requisicao->livro->nome}'",
+            $user
+        );
+
         try {
             Mail::to($user->email)->send(new RequisicaoConfirmadaMail($requisicao, false));
         } catch (Throwable $e) {
@@ -142,6 +154,13 @@ class RequisicaoController extends Controller
 
         $this->notificarAlertasDisponibilidade($requisicao->livro);
 
+        $this->auditoriaService->registar(
+            'Requisições',
+            $requisicao->id,
+            "Confirmou a devolução da requisição #{$requisicao->numero_sequencial} do livro '{$requisicao->livro->nome}'",
+            $request->user()
+        );
+
         return redirect()->back()->with('status', __('Livro rececionado e devolvido com sucesso.'));
     }
 
@@ -162,6 +181,13 @@ class RequisicaoController extends Controller
         ]);
 
         $this->notificarAlertasDisponibilidade($requisicao->livro);
+
+        $this->auditoriaService->registar(
+            'Requisições',
+            $requisicao->id,
+            "Cancelou a requisição #{$requisicao->numero_sequencial} do livro '{$requisicao->livro->nome}'",
+            $user
+        );
 
         return redirect()->back()->with('status', __('Requisição cancelada com sucesso.'));
     }

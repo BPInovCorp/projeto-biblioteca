@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Mail\EstadoComentarioCidadaoMail;
 use App\Models\Comentario;
+use App\Services\AuditoriaService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +15,13 @@ use Throwable;
 
 class AdminComentarioController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function index(Request $request): View
     {
         $estado = $request->query('estado', 'suspenso');
@@ -53,6 +62,14 @@ class AdminComentarioController extends Controller
 
         try {
             $comentario->load(['user', 'livro']);
+
+            $this->auditoriaService->registar(
+                'avaliações',
+                $comentario->id,
+                "aprovou a avaliação #{$comentario->id} do livro '{$comentario->livro->nome}'",
+                auth::user()
+            );
+
             if ($comentario->user && $comentario->user->email) {
                 Mail::to($comentario->user->email)->send(new EstadoComentarioCidadaoMail($comentario));
             }
@@ -80,6 +97,14 @@ class AdminComentarioController extends Controller
 
         try {
             $comentario->load(['user', 'livro']);
+
+            $this->auditoriaService->registar(
+                'Avaliações',
+                $comentario->id,
+                "Recusou a avaliação #{$comentario->id} do livro '{$comentario->livro->nome}' com a justificação: '{$comentario->justificacao}'",
+                $request->user()
+            );
+
             if ($comentario->user && $comentario->user->email) {
                 Mail::to($comentario->user->email)->send(new EstadoComentarioCidadaoMail($comentario));
             }

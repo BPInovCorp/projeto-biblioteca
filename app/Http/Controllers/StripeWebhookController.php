@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Encomenda;
+use App\Services\AuditoriaService;
 use App\Services\CarrinhoService;
 use Exception;
 use Illuminate\Database\QueryException;
@@ -19,7 +20,8 @@ use UnexpectedValueException;
 class StripeWebhookController extends Controller
 {
     public function __construct(
-        protected CarrinhoService $carrinhoService
+        protected CarrinhoService $carrinhoService,
+        protected AuditoriaService $auditoriaService
     ) {}
 
     public function handle(Request $request): JsonResponse
@@ -91,6 +93,13 @@ class StripeWebhookController extends Controller
                                         'idempotency_key' => 'refund_' . $session->payment_intent,
                                     ]);
                                     Log::info("Reembolso de pagamento duplicado executado com sucesso para a encomenda #{$encomenda->numero}, intent: {$session->payment_intent}");
+
+                                    $this->auditoriaService->registar(
+                                        'Encomendas',
+                                        $encomenda->id,
+                                        "Processou reembolso automático de cobrança duplicada da encomenda #{$encomenda->numero} na Stripe",
+                                        $encomenda->user
+                                    );
                                 } catch (Exception $e) {
                                 Log::error("Falha ao emitir reembolso de pagamento duplicado para a encomenda #{$encomenda->numero}, intent: {$session->payment_intent}. Erro: {$e->getMessage()}");
                                 throw new Exception("Falha no reembolso de cobranca duplicada. O webhook sera repetido pela Stripe: " . $e->getMessage());
@@ -113,6 +122,13 @@ class StripeWebhookController extends Controller
                             $itensComprados = $encomenda->items->pluck('quantidade', 'livro_id')->toArray();
                             $this->carrinhoService->removerItensComprados($user, $itensComprados);
                         }
+
+                        $this->auditoriaService->registar(
+                            'Encomendas',
+                            $encomenda->id,
+                            "Confirmou o pagamento da encomenda #{$encomenda->numero} via Stripe Checkout",
+                            $encomenda->user
+                        );
                     }
 
                     DB::table('stripe_webhook_events')->insert([

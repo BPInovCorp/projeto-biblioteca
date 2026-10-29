@@ -6,6 +6,7 @@ use App\Exports\LivrosExport;
 use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
+use App\Services\AuditoriaService;
 use App\Services\RecomendacaoLivroService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,6 +16,10 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class LivroController extends Controller
 {
+    public function __construct(
+        protected AuditoriaService $auditoriaService
+    ) {}
+
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -125,6 +130,13 @@ class LivroController extends Controller
 
         $livro->autores()->attach($validated['autores']);
 
+        $this->auditoriaService->registar(
+            'Livros',
+            $livro->id,
+            "Criou o livro '{$livro->nome}' (ISBN: {$livro->isbn})",
+            $request->user()
+        );
+
         return redirect()->route('livros.index')->with('success', 'Livro adicionado com sucesso!');
     }
 
@@ -161,6 +173,13 @@ class LivroController extends Controller
 
         $livro->autores()->sync($validated['autores']);
 
+        $this->auditoriaService->registar(
+            'Livros',
+            $livro->id,
+            "Atualizou os dados do livro '{$livro->nome}'",
+            $request->user()
+        );
+
         return redirect()->route('livros.index')->with('success', 'Livro atualizado com sucesso!');
     }
 
@@ -174,8 +193,18 @@ class LivroController extends Controller
             return redirect()->route('livros.index')->with('error', 'Não é possível eliminar este livro porque possui requisições ativas.');
         }
 
+        $livroId = $livro->id;
+        $livroNome = $livro->nome;
+
         $livro->autores()->detach();
         $livro->delete();
+
+        $this->auditoriaService->registar(
+            'Livros',
+            $livroId,
+            "Eliminou o livro '{$livroNome}'",
+            request()->user()
+        );
 
         return redirect()->route('livros.index')->with('success', 'Livro eliminado com sucesso!');
     }

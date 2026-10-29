@@ -102,4 +102,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Encomenda::class, 'user_id');
     }
+
+    public function auditoriaLogs(): HasMany
+    {
+        return $this->hasMany(AuditoriaLog::class, 'user_id');
+    }
 }
