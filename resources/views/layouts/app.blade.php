@@ -40,8 +40,11 @@
                 </a>
 
                 @if(request()->user()?->isAdmin())
-                    <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">
+                    <a href="{{ route('dashboard') }}" class="btn {{ request()->routeIs('dashboard') ? 'btn-active' : 'btn-ghost' }} btn-sm">
                         Painel de Controlo
+                    </a>
+                    <a href="{{ route('admin.logs.index') }}" class="btn {{ request()->routeIs('admin.logs.*') ? 'btn-active' : 'btn-ghost' }} btn-sm">
+                        Logs
                     </a>
                 @endif
 

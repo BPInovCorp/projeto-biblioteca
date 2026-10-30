@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminComentarioController;
 use App\Http\Controllers\AdminEncomendaController;
+use App\Http\Controllers\AdminLogController;
 use App\Http\Controllers\AdminUserController;
 use App\Http\Controllers\AlertaController;
 use App\Http\Controllers\AutorController;
@@ -162,5 +163,7 @@ Route::middleware([
         Route::post('admin/comentarios/{comentario}/recusar', [AdminComentarioController::class, 'recusar'])->name('admin.comentarios.recusar');
         Route::get('admin/encomendas', [AdminEncomendaController::class, 'index'])->name('admin.encomendas.index');
         Route::get('admin/encomendas/{encomenda}', [AdminEncomendaController::class, 'show'])->name('admin.encomendas.show');
+        Route::get('admin/logs/exportar', [AdminLogController::class, 'export'])->name('admin.logs.export');
+        Route::get('admin/logs', [AdminLogController::class, 'index'])->name('admin.logs.index');
     });
 });

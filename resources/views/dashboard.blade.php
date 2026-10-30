@@ -56,7 +56,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 <div class="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
                     <div class="card-body p-6 flex flex-col justify-between">
                         <div>
@@ -137,6 +137,23 @@
                         <div class="card-actions justify-end mt-6">
                             <a href="{{ route('admin.encomendas.index') }}" class="btn btn-primary btn-sm w-full">
                                 {{ __('Gerir Encomendas') }}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card bg-base-100 shadow-xl border border-base-300 hover:shadow-2xl transition-all duration-300">
+                    <div class="card-body p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="text-3xl mb-2">📜</div>
+                            <h2 class="card-title text-xl font-bold">{{ __('Logs de Auditoria') }}</h2>
+                            <p class="text-xs opacity-80 mt-1">
+                                {{ __('Rastreio integral de ações dos utilizadores, registo de IP, navegador e histórico de alterações.') }}
+                            </p>
+                        </div>
+                        <div class="card-actions justify-end mt-6">
+                            <a href="{{ route('admin.logs.index') }}" class="btn btn-primary btn-sm w-full">
+                                {{ __('Consultar Logs') }}
                             </a>
                         </div>
                     </div>
