@@ -5,47 +5,100 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>{{ config('app.name', 'Biblioteca') }}</title>
         @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @livewireStyles
     </head>
     <body class="min-h-screen bg-base-100 text-base-content flex flex-col justify-between">
-        <header class="navbar bg-base-200 shadow-md px-4 lg:px-8 border-b border-base-300">
+        <header class="navbar bg-base-100 shadow-md px-4 sm:px-8 border-b border-base-300">
             <div class="navbar-start">
-                <a href="{{ url('/') }}" class="btn btn-ghost normal-case text-2xl font-bold tracking-wide">
+                <a href="{{ url('/') }}" class="btn btn-ghost normal-case text-xl sm:text-2xl font-bold tracking-wide shrink-0">
                     📚 {{ config('app.name', 'Biblioteca') }}
                 </a>
             </div>
 
-            <div class="navbar-end gap-3">
+            <div class="navbar-end gap-2">
                 @if (Route::has('login'))
                     @auth
-                        @if(auth()->user()->isAdmin())
-                            <a href="{{ url('/dashboard') }}" class="btn btn-ghost btn-sm">
-                                Painel de Controlo
+                        <div class="hidden xl:flex items-center gap-2">
+                            <a href="{{ url('/') }}" class="btn btn-active btn-sm">
+                                Estante
                             </a>
-                        @endif
-                        <a href="{{ route('requisicoes.index') }}" class="btn btn-ghost btn-sm">
-                            Requisições
-                        </a>
-                        <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            <span>{{ __('Carrinho') }}</span>
-                            @if(auth()->user()->carrinhoItems()->sum('quantidade') > 0)
-                                <span class="badge badge-primary badge-xs font-bold">{{ auth()->user()->carrinhoItems()->sum('quantidade') }}</span>
+
+                            <a href="{{ route('requisicoes.index') }}" class="btn btn-ghost btn-sm">
+                                Requisições
+                            </a>
+
+                            <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1.5 px-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span>Carrinho</span>
+                                @if(auth()->user()->carrinhoItems()->sum('quantidade') > 0)
+                                    <span class="badge badge-primary badge-xs font-bold">{{ auth()->user()->carrinhoItems()->sum('quantidade') }}</span>
+                                @endif
+                            </a>
+
+                            @if(auth()->user()->isAdmin())
+                                <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">
+                                    Painel de Controlo
+                                </a>
+                                <a href="{{ route('admin.logs.index') }}" class="btn btn-ghost btn-sm">
+                                    Logs
+                                </a>
                             @endif
-                        </a>
-                        <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
-                            O meu Perfil
-                        </a>
-                    @else
-                        <a href="{{ route('login') }}" class="btn btn-ghost btn-sm">
-                            Entrar
-                        </a>
-                        @if (Route::has('register'))
-                            <a href="{{ route('register') }}" class="btn btn-primary btn-sm">
-                                Registar
+
+                            <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
+                                O meu Perfil
                             </a>
-                        @endif
+
+                            <button type="button" class="btn btn-outline btn-error btn-sm" onclick="document.getElementById('modal-confirmar-logout-welcome').showModal()">
+                                Terminar Sessão
+                            </button>
+                        </div>
+
+                        <div class="flex xl:hidden items-center gap-2">
+                            <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1.5 px-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span>Carrinho</span>
+                                @if(auth()->user()->carrinhoItems()->sum('quantidade') > 0)
+                                    <span class="badge badge-primary badge-xs font-bold">{{ auth()->user()->carrinhoItems()->sum('quantidade') }}</span>
+                                @endif
+                            </a>
+
+                            <div class="relative" x-data="{ aberto: false }">
+                                <button type="button" @click="aberto = !aberto" class="btn btn-ghost btn-square btn-sm" aria-label="Menu de Navegação">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                    </svg>
+                                </button>
+                                <div x-show="aberto" x-cloak @click.outside="aberto = false" class="absolute right-0 top-full mt-2 z-50 bg-base-100 rounded-2xl border border-base-300 shadow-2xl w-60 p-3">
+                                    <ul class="menu menu-sm gap-1 font-semibold text-xs">
+                                        <li><a href="{{ url('/') }}" @click="aberto = false">📖 Estante</a></li>
+                                        <li><a href="{{ route('requisicoes.index') }}" @click="aberto = false">📜 Requisições</a></li>
+                                        @if(auth()->user()->isAdmin())
+                                            <li class="menu-title text-[10px] uppercase font-bold text-base-content/60 mt-1">Administração</li>
+                                            <li><a href="{{ route('dashboard') }}" @click="aberto = false">⚙️ Painel de Controlo</a></li>
+                                            <li><a href="{{ route('admin.logs.index') }}" @click="aberto = false">📋 Logs de Auditoria</a></li>
+                                        @endif
+                                        <div class="divider my-1"></div>
+                                        <li><a href="{{ route('profile.show') }}" @click="aberto = false">👤 O meu Perfil</a></li>
+                                        <li><button type="button" onclick="document.getElementById('modal-confirmar-logout-welcome').showModal()" class="text-error font-bold">🚪 Terminar Sessão</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    @else
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('login') }}" class="btn btn-ghost btn-sm font-bold">
+                                Entrar
+                            </a>
+                            @if (Route::has('register'))
+                                <a href="{{ route('register') }}" class="btn btn-primary btn-sm font-bold">
+                                    Registar
+                                </a>
+                            @endif
+                        </div>
                     @endauth
                 @endif
             </div>
@@ -549,8 +602,32 @@
                 </div>
             </footer>
 
-            <script>
-                function abrirLivroPorElemento(elemento) {
+            @auth
+            <dialog id="modal-confirmar-logout-welcome" class="modal">
+                <div class="modal-box bg-base-100 border border-base-300 shadow-2xl max-w-md text-center p-6 flex flex-col items-center gap-3">
+                    <div class="text-4xl">🚪</div>
+                    <h3 class="font-bold text-lg text-amber-950">Terminar sessão</h3>
+                    <p class="text-xs opacity-80 leading-relaxed">
+                        Tem a certeza de que pretende encerrar a sua sessão na biblioteca?
+                    </p>
+                    <div class="modal-action flex justify-center gap-3 mt-4 w-full">
+                        <form method="dialog">
+                            <button class="btn btn-ghost btn-sm">Cancelar</button>
+                        </form>
+                        <form method="post" action="{{ route('logout') }}" class="inline">
+                            @csrf
+                            <button type="submit" class="btn btn-error btn-sm text-white font-bold">Terminar sessão</button>
+                        </form>
+                    </div>
+                </div>
+                <form method="dialog" class="modal-backdrop">
+                    <button>fechar</button>
+                </form>
+            </dialog>
+        @endauth
+
+        <script>
+            function abrirLivroPorElemento(elemento) {
                     preencherModalComDados(elemento.dataset);
                 }
 
@@ -855,5 +932,6 @@
                     }
                 }
             </script>
+            @livewireScripts
         </body>
     </html>
