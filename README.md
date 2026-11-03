@@ -1,13 +1,35 @@
 # Projeto Biblioteca
 
-Sistema de Gestão de Biblioteca e Comércio Literário desenvolvido em **Laravel 13**, com autenticação segura **Laravel Jetstream (2FA)**, interface moderna baseada em **DaisyUI / Tailwind CSS**, integração com a **Google Books API**, motor de recomendação inteligente, controlo de requisições, moderação de críticas literárias, exportação para Excel e **módulo completo de e-commerce com pagamentos Stripe Sandbox**.
+Sistema de Gestão de Biblioteca e Comércio Literário desenvolvido em **Laravel 13**, com autenticação **Laravel Jetstream (2FA)**, interface baseada em **DaisyUI / Tailwind CSS**, integração com a **Google Books API**, gestão de catálogo e requisições, sistema de críticas literárias e recomendações de livros, alertas de disponibilidade, módulo de comércio eletrónico com **Stripe Checkout (Sandbox)**, backoffice de encomendas, automação de carrinhos abandonados, exportação de dados e **logs de auditoria**, com testes automatizados em **PEST PHP e PHPUnit**.
+
+## Índice
+
+- [Funcionalidades Principais](#funcionalidades-principais)
+  - [1. Autenticação & Controlo de Acessos (RBAC)](#1-autenticação--controlo-de-acessos-rbac)
+  - [2. Estante Interativa & Catálogo Público](#2-estante-interativa--catálogo-público)
+  - [3. Módulo de Requisições & Devoluções (S2)](#3-módulo-de-requisições--devoluções-s2)
+  - [4. Integração com a Google Books API (S3)](#4-integração-com-a-google-books-api-s3)
+  - [5. Críticas Literárias & Moderação Administrativa (S4)](#5-críticas-literárias--moderação-administrativa-s4)
+  - [6. Motor Inteligente de Livros Relacionados (S4)](#6-motor-inteligente-de-livros-relacionados-s4)
+  - [7. Alertas de Disponibilidade / Lista de Espera (S4)](#7-alertas-de-disponibilidade--lista-de-espera-s4)
+  - [8. Módulo Comercial, Carrinho de Compras & Stripe Sandbox (S5)](#8-módulo-comercial-carrinho-de-compras--stripe-sandbox-s5)
+  - [9. Backoffice Administrativo de Encomendas (S5)](#9-backoffice-administrativo-de-encomendas-s5)
+  - [10. Automação de Lembrete de Carrinho Abandonado (S5)](#10-automação-de-lembrete-de-carrinho-abandonado-s5)
+  - [11. Módulo de Logs de Auditoria & Rastreio de Ações (S6)](#11-módulo-de-logs-de-auditoria--rastreio-de-ações-s6)
+
+- [Arquitetura de Segurança, Cifragem e APP_KEY](#arquitetura-de-segurança-cifragem-e-app_key)
+- [Requisitos do Sistema](#requisitos-do-sistema)
+- [Passos para Instalação](#passos-para-instalação)
+- [Comandos de Fila, Automação, Stripe e Sincronização](#comandos-de-fila-automação-stripe-e-sincronização)
+- [Testes Automatizados](#testes-automatizados)
+- [Projeto desenvolvido para](#projeto-desenvolvido-para)
 
 ## Funcionalidades Principais
 
 ### 1. Autenticação & Controlo de Acessos (RBAC)
 - **Autenticação Segura com 2FA:** Suporte nativo a Autenticação de Dois Fatores (Two-Factor Authentication).
 - **Segregação Estrita de Papéis:**
-  - **Administradores:** Gestão de obras, receção de livros devolvidos, moderação de críticas, auditoria de encomendas comerciais, importação da Google Books e criação de novos administradores;
+  - **Administradores:** Gestão de obras, receção de livros devolvidos, moderação de críticas, auditoria de encomendas comerciais, consulta e exportação de logs de auditoria, importação da Google Books e criação de novos administradores;
   - **Cidadãos:** Requisição de exemplares disponíveis, consulta do histórico pessoal, submissão de avaliações, subscrição de alertas de disponibilidade e aquisição de livros via carrinho de compras.
   - Novos registos públicos assumem automaticamente o papel de Cidadão. Novos Administradores só podem ser criados a partir do painel interno por outro Administrador autenticado.
 
@@ -75,9 +97,16 @@ Sistema de Gestão de Biblioteca e Comércio Literário desenvolvido em **Larave
 
 ### 10. Automação de Lembrete de Carrinho Abandonado (S5)
 - **Regra Estrita de 1 Hora de Inatividade:** Deteção de cidadãos com livros no carrinho cujo último `updated_at` ultrapasse 60 minutos sem alterações.
-- **Salvaguardas Concorrenciais:** Exclusão de cidadãos que tenham concluído compras na última hora e controlo atómico por timestamp (`aviso_abandono_enviado_em`) que impede envios duplicados, rearmando o ciclo apenas caso o utilizador volte a interagir com o carrinho.
+- **Salvaguardas Concorrenciais:** Exclusão de cidadãos que tenham concluído compras na última hora e controlo atómico por timestamp (`aviso_abandono_enviado_em`) que impede envios duplicados, rearmando o ciclo apenas caso o cidadão volte a interagir com o carrinho.
 - **Mailable Assíncrono em Fila (`ShouldQueue`):** O comando Artisan `biblioteca:lembrete-carrinho-abandonado` despacha o `CarrinhoAbandonadoMail` para a fila, renderizando uma mensagem acolhedora em Português Europeu com a tabela dos livros esquecidos e botão de retoma direta.
-- **Agendamento no Scheduler:** Execução horária automática configurada em `routes/console.php`.
+- **Agendamento no Scheduler:** Execução configurada a cada 10 minutos (`everyTenMinutes()`) em `routes/console.php`.
+
+### 11. Módulo de Logs de Auditoria & Rastreio de Ações (S6)
+- **Tabela de Auditoria (`auditoria_logs`):** Registo persistente de ações com 8 campos fundamentais: Data, Hora, User (com preservação via `nullOnDelete`), Módulo, ID do objeto, Descrição da alteração, endereço IP e Browser simplificado.
+- **Serviço Centralizado (`AuditoriaService`):** Rastreio automático e transparente nos controladores principais (requisições, catálogo, comércio e moderação) com captura do IP real do cliente e parsing inteligente do cabeçalho User-Agent (identificando Edge e Opera antes de Chrome).
+- **Painel de Consulta & Filtros (`/admin/logs`):** Acesso exclusivo a Administradores com contadores em tempo real, paginação de 20 registos, pesquisa livre textual e filtros dinâmicos por Módulo, Utilizador e Intervalo de Datas (`data_inicio` e `data_fim` com limite às 23:59:59).
+- **Exportação para Excel e CSV:** Descarregamento de relatórios completos em formato `.xlsx` e `.csv` via `AuditoriaLogsExport` (`maatwebsite/excel`), respeitando rigorosamente todos os filtros ativos na consulta sem corte de paginação.
+- **Interface Responsiva Unificada:** Menu de navegação superior com agrupamento em menu hambúrguer para ecrãs de média e baixa resolução (`< xl:`), garantindo que o logótipo nunca é sobreposto e mantendo o atalho do carrinho destacado com crachá em todas as páginas da aplicação.
 
 
 ## Arquitetura de Segurança, Cifragem e APP_KEY
@@ -112,22 +141,26 @@ Sistema de Gestão de Biblioteca e Comércio Literário desenvolvido em **Larave
    ```bash
    php artisan key:generate
    ```
-5. Configurar as credenciais da Stripe no ficheiro `.env`:
+5. Criar a ligação simbólica para o armazenamento público:
+   ```bash
+   php artisan storage:link
+   ```
+6. Configurar as credenciais da Stripe no ficheiro `.env`:
    ```env
    STRIPE_KEY=pk_test_...
    STRIPE_SECRET=sk_test_...
    STRIPE_WEBHOOK_SECRET=whsec_...
    ```
-6. Criar a base de dados `biblioteca` no MySQL.
-7. Executar as migrações e o povoamento inicial:
+7. Criar a base de dados `biblioteca` no MySQL.
+8. Executar as migrações e o povoamento inicial:
    ```bash
    php artisan migrate:fresh --seed
    ```
-8. Compilar os assets frontend:
+9. Compilar os assets frontend:
    ```bash
    npm run build
    ```
-9. Iniciar o servidor local:
+10. Iniciar o servidor local:
    ```bash
    php artisan serve
    ```
@@ -156,7 +189,11 @@ Sistema de Gestão de Biblioteca e Comércio Literário desenvolvido em **Larave
 
 
 ## Testes Automatizados
-O projeto conta com uma suite de testes de integração e testes unitários com **100% de aprovação (102 testes aprovados, 7 ignorados e 358 asserções com zero falhas em ~4.9s)**:
+O projeto conta com uma suite completa de testes de integração, testes funcionais e testes unitários em **PHPUnit clássico** e **PEST PHP**, com **100% de aprovação (117 testes aprovados, 7 ignorados e 452 asserções com zero falhas)**:
+```bash
+./vendor/bin/pest
+```
+Ou através do runner do Artisan:
 ```bash
 php artisan test
 ```

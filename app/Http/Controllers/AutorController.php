@@ -3,11 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Autor;
+use App\Services\AuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class AutorController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -54,7 +62,14 @@ class AutorController extends Controller
             'foto' => 'nullable|string|max:255',
         ]);
 
-        Autor::create($validated);
+        $autor = Autor::create($validated);
+
+        $this->auditoriaService->registar(
+            'Autores',
+            $autor->id,
+            "Criou o autor '{$autor->nome}'",
+            $request->user()
+        );
 
         return redirect()->route('autores.index')->with('success', 'Autor adicionado com sucesso!');
     }
@@ -73,12 +88,29 @@ class AutorController extends Controller
 
         $autor->update($validated);
 
+        $this->auditoriaService->registar(
+            'Autores',
+            $autor->id,
+            "Atualizou os dados do autor '{$autor->nome}'",
+            $request->user()
+        );
+
         return redirect()->route('autores.index')->with('success', 'Autor atualizado com sucesso!');
     }
 
     public function destroy(Autor $autor)
     {
+        $autorId = $autor->id;
+        $autorNome = $autor->nome;
+
         $autor->delete();
+
+        $this->auditoriaService->registar(
+            'Autores',
+            $autorId,
+            "Eliminou o autor '{$autorNome}'",
+            request()->user()
+        );
 
         return redirect()->route('autores.index')->with('success', 'Autor eliminado com sucesso!');
     }

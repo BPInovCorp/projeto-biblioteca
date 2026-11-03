@@ -107,3 +107,26 @@ test('filtros por modulo e intervalo de datas funcionam corretamente em pest', f
     $resposta->assertDontSee('AÃ§Ã£o de Encomenda Fora do Filtro');
     $resposta->assertDontSee('AÃ§Ã£o de RequisiÃ§Ã£o Fora da Data');
 });
+test('login, logout e registo de utilizadores geram logs de auditoria', function () {
+    $this->post('/register', [
+        'name' => 'Novo Leitor',
+        'email' => 'novo@example.com',
+        'password' => 'password-segura-123',
+        'password_confirmation' => 'password-segura-123',
+        'terms' => true,
+    ]);
+
+    $novo = App\Models\User::where('email', 'novo@example.com')->firstOrFail();
+    $this->post('/logout');
+    $this->post('/login', ['email' => 'novo@example.com', 'password' => 'password-segura-123']);
+    $this->post('/logout');
+    $this->post('/login', ['email' => 'novo@example.com', 'password' => 'errada']);
+
+    $alteracoes = App\Models\AuditoriaLog::where('modulo', 'Autenticação')->pluck('alteracao')->implode('|');
+
+    expect($alteracoes)->toContain('Registou uma nova conta')
+        ->toContain('Iniciou sessão')
+        ->toContain('Terminou sessão')
+        ->toContain('Tentativa de login falhada');
+    expect(App\Models\AuditoriaLog::where('modulo', 'Autenticação')->whereNotNull('ip')->count())->toBeGreaterThan(0);
+});

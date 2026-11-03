@@ -3,11 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\Editora;
+use App\Services\AuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class EditoraController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function index(Request $request)
     {
         $search = $request->input('search');
@@ -54,7 +62,14 @@ class EditoraController extends Controller
             'logotipo' => 'nullable|string|max:255',
         ]);
 
-        Editora::create($validated);
+        $editora = Editora::create($validated);
+
+        $this->auditoriaService->registar(
+            'Editoras',
+            $editora->id,
+            "Criou a editora '{$editora->nome}'",
+            $request->user()
+        );
 
         return redirect()->route('editoras.index')->with('success', 'Editora adicionada com sucesso!');
     }
@@ -73,12 +88,29 @@ class EditoraController extends Controller
 
         $editora->update($validated);
 
+        $this->auditoriaService->registar(
+            'Editoras',
+            $editora->id,
+            "Atualizou os dados da editora '{$editora->nome}'",
+            $request->user()
+        );
+
         return redirect()->route('editoras.index')->with('success', 'Editora atualizada com sucesso!');
     }
 
     public function destroy(Editora $editora)
     {
+        $editoraId = $editora->id;
+        $editoraNome = $editora->nome;
+
         $editora->delete();
+
+        $this->auditoriaService->registar(
+            'Editoras',
+            $editoraId,
+            "Eliminou a editora '{$editoraNome}'",
+            request()->user()
+        );
 
         return redirect()->route('editoras.index')->with('success', 'Editora eliminada com sucesso!');
     }

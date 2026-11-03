@@ -8,54 +8,53 @@
         @livewireStyles
     </head>
     <body class="min-h-screen bg-base-100 text-base-content flex flex-col justify-between">
-        <header class="navbar bg-base-100 shadow-md px-4 sm:px-8 border-b border-base-300">
-            <div class="navbar-start">
+        <header class="navbar bg-base-100 shadow-md px-4 sm:px-8 border-b border-base-300 flex items-center justify-between">
+            <div class="flex-none">
                 <a href="{{ url('/') }}" class="btn btn-ghost normal-case text-xl sm:text-2xl font-bold tracking-wide shrink-0">
                     📚 {{ config('app.name', 'Biblioteca') }}
                 </a>
             </div>
 
-            <div class="navbar-end gap-2">
+            <div class="flex-1 max-w-md mx-4">
+                <form method="GET" action="{{ url('/') }}" class="w-full">
+                    @if(request('ordenar')) <input type="hidden" name="ordenar" value="{{ request('ordenar') }}"> @endif
+                    @if(request('preco_min')) <input type="hidden" name="preco_min" value="{{ request('preco_min') }}"> @endif
+                    @if(request('preco_max')) <input type="hidden" name="preco_max" value="{{ request('preco_max') }}"> @endif
+                    @foreach((array) request('autores', []) as $id) <input type="hidden" name="autores[]" value="{{ $id }}"> @endforeach
+                    @foreach((array) request('editoras', []) as $id) <input type="hidden" name="editoras[]" value="{{ $id }}"> @endforeach
+
+                    <div class="relative w-full">
+                        <input type="text"
+                               name="search"
+                               value="{{ request('search') }}"
+                               placeholder="Pesquisar por título, autor, editora ou ISBN..."
+                               class="input input-bordered input-sm w-full rounded-full pl-10 pr-10 bg-base-200/60 focus:bg-base-100 text-xs shadow-inner" />
+
+                        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-base-content/40 pointer-events-none flex items-center">
+                            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8"></circle>
+                                <path d="m21 21-4.35-4.35"></path>
+                            </svg>
+                        </span>
+
+                        @if(request('search'))
+                            <a href="{{ url('/') }}"
+                               class="absolute right-4 top-1/2 -translate-y-1/2 text-base-content/40 hover:text-error transition-colors p-1 flex items-center"
+                               title="Limpar pesquisa">
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M18 6 6 18"></path>
+                                    <path d="m6 6 12 12"></path>
+                                </svg>
+                            </a>
+                        @endif
+                    </div>
+                </form>
+            </div>
+
+            <div class="flex-none gap-2">
                 @if (Route::has('login'))
                     @auth
-                        <div class="hidden xl:flex items-center gap-2">
-                            <a href="{{ url('/') }}" class="btn btn-active btn-sm">
-                                Estante
-                            </a>
-
-                            <a href="{{ route('requisicoes.index') }}" class="btn btn-ghost btn-sm">
-                                Requisições
-                            </a>
-
-                            <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1.5 px-2">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
-                                </svg>
-                                <span>Carrinho</span>
-                                @if(auth()->user()->carrinhoItems()->sum('quantidade') > 0)
-                                    <span class="badge badge-primary badge-xs font-bold">{{ auth()->user()->carrinhoItems()->sum('quantidade') }}</span>
-                                @endif
-                            </a>
-
-                            @if(auth()->user()->isAdmin())
-                                <a href="{{ route('dashboard') }}" class="btn btn-ghost btn-sm">
-                                    Painel de Controlo
-                                </a>
-                                <a href="{{ route('admin.logs.index') }}" class="btn btn-ghost btn-sm">
-                                    Logs
-                                </a>
-                            @endif
-
-                            <a href="{{ route('profile.show') }}" class="btn btn-primary btn-sm">
-                                O meu Perfil
-                            </a>
-
-                            <button type="button" class="btn btn-outline btn-error btn-sm" onclick="document.getElementById('modal-confirmar-logout-welcome').showModal()">
-                                Terminar Sessão
-                            </button>
-                        </div>
-
-                        <div class="flex xl:hidden items-center gap-2">
+                        <div class="flex items-center gap-2">
                             <a href="{{ route('carrinho.index') }}" class="btn btn-ghost btn-sm inline-flex items-center gap-1.5 px-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -123,149 +122,126 @@
                 </div>
             @endif
 
-            <section class="max-w-3xl mx-auto w-full">
-                <div class="text-center mb-6">
-                    <h2 class="text-2xl font-bold tracking-tight">Menus do Sistema</h2>
-                    <p class="text-sm opacity-80 mt-1">Consulte os módulos estruturados da biblioteca</p>
-                </div>
+            <section class="max-w-5xl mx-auto w-full px-2 sm:px-4" x-data="{ aba: '{{ request('preco_min') || request('preco_max') ? 'livros' : (request('autores') ? 'autores' : (request('editoras') ? 'editoras' : '')) }}' }">
+                <form method="GET" action="{{ url('/') }}" id="form-filtros-catalogo">
+                    @if(request('search'))
+                        <input type="hidden" name="search" value="{{ request('search') }}">
+                    @endif
 
-                <form method="GET" action="{{ url('/') }}" id="acordeao-menus-principais" class="join join-vertical w-full bg-base-200 border border-base-300 rounded-box shadow-md">
-                    <details class="collapse collapse-arrow join-item border-b border-base-300">
-                        <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>📖</span> Livros (Ordenação e Preço)
-                        </summary>
-                        <div class="collapse-content flex flex-col gap-3 pt-2">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                <div class="form-control">
-                                    <label class="label cursor-pointer justify-start gap-3">
-                                        <input type="radio" name="ordenar" value="livro_nome_asc" {{ in_array(request('ordenar', 'livro_nome_asc'), ['livro_nome_asc', 'nome_asc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                        <span class="label-text text-sm">Nome do Livro (A a Z)</span>
-                                    </label>
-                                </div>
-                                <div class="form-control">
-                                    <label class="label cursor-pointer justify-start gap-3">
-                                        <input type="radio" name="ordenar" value="livro_nome_desc" {{ in_array(request('ordenar'), ['livro_nome_desc', 'nome_desc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                        <span class="label-text text-sm">Nome do Livro (Z a A)</span>
-                                    </label>
-                                </div>
-                                <div class="form-control">
-                                    <label class="label cursor-pointer justify-start gap-3">
-                                        <input type="radio" name="ordenar" value="livro_isbn_asc" {{ in_array(request('ordenar'), ['livro_isbn_asc', 'isbn_asc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                        <span class="label-text text-sm">ISBN (Crescente)</span>
-                                    </label>
-                                </div>
-                                <div class="form-control">
-                                    <label class="label cursor-pointer justify-start gap-3">
-                                        <input type="radio" name="ordenar" value="livro_isbn_desc" {{ in_array(request('ordenar'), ['livro_isbn_desc', 'isbn_desc']) ? 'checked' : '' }} class="radio radio-primary radio-sm" />
-                                        <span class="label-text text-sm">ISBN (Decrescente)</span>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <div class="pt-2 border-t border-base-300">
-                                <label class="label p-0 mb-1"><span class="label-text text-xs font-bold uppercase tracking-wider text-amber-950">Filtrar por Faixa de Preço (€)</span></label>
-                                <div class="flex gap-2 items-center">
-                                    <input type="number" step="0.01" name="preco_min" value="{{ request('preco_min') }}" placeholder="Preço Mínimo" class="input input-bordered input-sm w-1/2 bg-base-100 text-base-content text-xs" />
-                                    <span class="text-xs font-bold opacity-50">-</span>
-                                    <input type="number" step="0.01" name="preco_max" value="{{ request('preco_max') }}" placeholder="Preço Máximo" class="input input-bordered input-sm w-1/2 bg-base-100 text-base-content text-xs" />
-                                </div>
-                            </div>
+                    <div class="flex flex-wrap items-center justify-center gap-3">
+                        <div class="tabs tabs-boxed bg-base-100 border border-base-300 p-1 shadow-sm">
+                            <button type="button"
+                                    class="tab tab-sm text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                                    :class="aba === 'livros' ? 'tab-active !bg-primary !text-primary-content shadow-sm' : ''"
+                                    @click="aba = (aba === 'livros' ? '' : 'livros')">
+                                <span>Livros e Preço</span>
+                                <svg class="w-2.5 h-2.5 fill-current transition-transform duration-200 shrink-0" :class="aba === 'livros' ? 'rotate-180' : ''" viewBox="0 0 256 256">
+                                    <path d="M 90 24.25 c 0 -0.896 -0.342 -1.792 -1.025 -2.475 c -1.366 -1.367 -3.583 -1.367 -4.949 0 L 45 60.8 L 5.975 21.775 c -1.367 -1.367 -3.583 -1.367 -4.95 0 c -1.366 1.367 -1.366 3.583 0 4.95 l 41.5 41.5 c 1.366 1.367 3.583 1.367 4.949 0 l 41.5 -41.5 C 89.658 26.042 90 25.146 90 24.25 z" transform="matrix(2.81 0 0 2.81 1.41 1.41)"/>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="tab tab-sm text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                                    :class="aba === 'autores' ? 'tab-active !bg-primary !text-primary-content shadow-sm' : ''"
+                                    @click="aba = (aba === 'autores' ? '' : 'autores')">
+                                <span>Autores</span>
+                                @if(!empty(request('autores')))
+                                    <span class="badge badge-xs badge-neutral text-white font-mono">{{ count((array) request('autores')) }}</span>
+                                @endif
+                                <svg class="w-2.5 h-2.5 fill-current transition-transform duration-200 shrink-0" :class="aba === 'autores' ? 'rotate-180' : ''" viewBox="0 0 256 256">
+                                    <path d="M 90 24.25 c 0 -0.896 -0.342 -1.792 -1.025 -2.475 c -1.366 -1.367 -3.583 -1.367 -4.949 0 L 45 60.8 L 5.975 21.775 c -1.367 -1.367 -3.583 -1.367 -4.95 0 c -1.366 1.367 -1.366 3.583 0 4.95 l 41.5 41.5 c 1.366 1.367 3.583 1.367 4.949 0 l 41.5 -41.5 C 89.658 26.042 90 25.146 90 24.25 z" transform="matrix(2.81 0 0 2.81 1.41 1.41)"/>
+                                </svg>
+                            </button>
+                            <button type="button"
+                                    class="tab tab-sm text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                                    :class="aba === 'editoras' ? 'tab-active !bg-primary !text-primary-content shadow-sm' : ''"
+                                    @click="aba = (aba === 'editoras' ? '' : 'editoras')">
+                                <span>Editoras</span>
+                                @if(!empty(request('editoras')))
+                                    <span class="badge badge-xs badge-neutral text-white font-mono">{{ count((array) request('editoras')) }}</span>
+                                @endif
+                                <svg class="w-2.5 h-2.5 fill-current transition-transform duration-200 shrink-0" :class="aba === 'editoras' ? 'rotate-180' : ''" viewBox="0 0 256 256">
+                                    <path d="M 90 24.25 c 0 -0.896 -0.342 -1.792 -1.025 -2.475 c -1.366 -1.367 -3.583 -1.367 -4.949 0 L 45 60.8 L 5.975 21.775 c -1.367 -1.367 -3.583 -1.367 -4.95 0 c -1.366 1.367 -1.366 3.583 0 4.95 l 41.5 41.5 c 1.366 1.367 3.583 1.367 4.949 0 l 41.5 -41.5 C 89.658 26.042 90 25.146 90 24.25 z" transform="matrix(2.81 0 0 2.81 1.41 1.41)"/>
+                                </svg>
+                            </button>
                         </div>
-                    </details>
 
-                    <details class="collapse collapse-arrow join-item border-b border-base-300" {{ request('autores') || in_array(request('ordenar'), ['autor_nome_asc', 'autor_nome_desc']) ? 'open' : '' }}>
-                        <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>✍️</span> Autores (Ordenação e Seleção)
-                        </summary>
-                        <div class="collapse-content flex flex-col gap-3 pt-2">
-                            <div class="flex gap-4 items-center">
-                                <span class="text-xs font-bold uppercase tracking-wider text-amber-950">Ordenar Estante:</span>
-                                <label class="label cursor-pointer gap-2 p-0">
-                                    <input type="radio" name="ordenar" value="autor_nome_asc" {{ request('ordenar') === 'autor_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
-                                    <span class="label-text text-xs">Autor (A a Z)</span>
-                                </label>
-                                <label class="label cursor-pointer gap-2 p-0">
-                                    <input type="radio" name="ordenar" value="autor_nome_desc" {{ request('ordenar') === 'autor_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
-                                    <span class="label-text text-xs">Autor (Z a A)</span>
-                                </label>
-                            </div>
-
-                            <div>
-                                <p class="text-xs opacity-75 mb-2">Selecione os autores que pretende ver na estante:</p>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
-                                    @foreach($autores as $autor)
-                                        <label class="label cursor-pointer justify-start gap-3 p-1">
-                                            <input type="checkbox" name="autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
-                                            <span class="label-text text-xs">{{ $autor->nome }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
+                        <div class="flex items-center gap-1.5">
+                            @if(request('ordenar') || request('preco_min') || request('preco_max') || request('autores') || request('editoras'))
+                                <a href="{{ url('/') }}" class="btn btn-ghost btn-xs text-base-content/60 font-semibold">Repor</a>
+                            @endif
+                            <button type="submit" class="btn btn-primary btn-xs font-bold shadow-sm">Aplicar</button>
                         </div>
-                    </details>
-
-                    <details class="collapse collapse-arrow join-item" {{ request('editoras') || in_array(request('ordenar'), ['editora_nome_asc', 'editora_nome_desc']) ? 'open' : '' }}>
-                        <summary class="collapse-title text-lg font-bold flex items-center gap-2 cursor-pointer">
-                            <span>🏢</span> Editoras (Ordenação e Seleção)
-                        </summary>
-                        <div class="collapse-content flex flex-col gap-3 pt-2">
-                            <div class="flex gap-4 items-center">
-                                <span class="text-xs font-bold uppercase tracking-wider text-amber-950">Ordenar Estante:</span>
-                                <label class="label cursor-pointer gap-2 p-0">
-                                    <input type="radio" name="ordenar" value="editora_nome_asc" {{ request('ordenar') === 'editora_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
-                                    <span class="label-text text-xs">Editora (A a Z)</span>
-                                </label>
-                                <label class="label cursor-pointer gap-2 p-0">
-                                    <input type="radio" name="ordenar" value="editora_nome_desc" {{ request('ordenar') === 'editora_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
-                                    <span class="label-text text-xs">Editora (Z a A)</span>
-                                </label>
-                            </div>
-
-                            <div>
-                                <p class="text-xs opacity-75 mb-2">Selecione as editoras que pretende ver na estante:</p>
-                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 bg-base-100 rounded-lg">
-                                    @foreach($editoras as $editora)
-                                        <label class="label cursor-pointer justify-start gap-3 p-1">
-                                            <input type="checkbox" name="editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
-                                            <span class="label-text text-xs">{{ $editora->nome }}</span>
-                                        </label>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                    </details>
-
-                    <div class="p-4 bg-base-300 flex justify-end gap-3 rounded-b-box">
-                        <a href="{{ url('/') }}" class="btn btn-sm btn-ghost">Repor Filtros e Ordenação</a>
-                        <button type="submit" class="btn btn-sm btn-primary">Aplicar Filtros</button>
                     </div>
-                </form>
-            </section>
 
-            <section class="max-w-2xl mx-auto w-full">
-                <form method="GET" action="{{ url('/') }}" class="flex flex-col sm:flex-row gap-2 items-center">
-                    @if(request('ordenar'))
-                        <input type="hidden" name="ordenar" value="{{ request('ordenar') }}">
-                    @endif
-                    @if(request('preco_min'))
-                        <input type="hidden" name="preco_min" value="{{ request('preco_min') }}">
-                    @endif
-                    @if(request('preco_max'))
-                        <input type="hidden" name="preco_max" value="{{ request('preco_max') }}">
-                    @endif
-                    @foreach((array) request('autores', []) as $id)
-                        <input type="hidden" name="autores[]" value="{{ $id }}">
-                    @endforeach
-                    @foreach((array) request('editoras', []) as $id)
-                        <input type="hidden" name="editoras[]" value="{{ $id }}">
-                    @endforeach
+                    <div x-show="aba === 'livros'" x-cloak class="mt-3 p-4 bg-base-100 border border-base-300 rounded-2xl shadow-sm space-y-3">
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                            <label class="label cursor-pointer justify-start gap-2 p-1">
+                                <input type="radio" name="ordenar" value="livro_nome_asc" {{ in_array(request('ordenar', 'livro_nome_asc'), ['livro_nome_asc', 'nome_asc']) ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">Título (A a Z)</span>
+                            </label>
+                            <label class="label cursor-pointer justify-start gap-2 p-1">
+                                <input type="radio" name="ordenar" value="livro_nome_desc" {{ in_array(request('ordenar'), ['livro_nome_desc', 'nome_desc']) ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">Título (Z a A)</span>
+                            </label>
+                            <label class="label cursor-pointer justify-start gap-2 p-1">
+                                <input type="radio" name="ordenar" value="livro_isbn_asc" {{ in_array(request('ordenar'), ['livro_isbn_asc', 'isbn_asc']) ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">ISBN (Crescente)</span>
+                            </label>
+                            <label class="label cursor-pointer justify-start gap-2 p-1">
+                                <input type="radio" name="ordenar" value="livro_isbn_desc" {{ in_array(request('ordenar'), ['livro_isbn_desc', 'isbn_desc']) ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">ISBN (Decrescente)</span>
+                            </label>
+                        </div>
+                        <div class="pt-2 border-t border-base-200 flex items-center justify-center gap-3">
+                            <span class="text-xs font-bold text-base-content/70">Preço (€):</span>
+                            <input type="number" step="0.01" name="preco_min" value="{{ request('preco_min') }}" placeholder="Mínimo" class="input input-bordered input-xs w-28 font-mono bg-base-100" />
+                            <span class="text-xs text-base-content/40 font-bold">—</span>
+                            <input type="number" step="0.01" name="preco_max" value="{{ request('preco_max') }}" placeholder="Máximo" class="input input-bordered input-xs w-28 font-mono bg-base-100" />
+                        </div>
+                    </div>
 
-                    <input type="text" name="search" value="{{ request('search') }}" placeholder="Pesquisar por título, autor, editora ou ISBN..." class="input input-bordered w-full bg-base-100 text-base-content text-sm shadow-md" />
-                    <div class="flex gap-2 shrink-0 w-full sm:w-auto justify-end">
-                        <button type="submit" class="btn btn-primary btn-sm">Pesquisar</button>
-                        @if(request('search'))
-                            <a href="{{ url('/') }}" class="btn btn-ghost btn-sm">Limpar</a>
-                        @endif
+                    <div x-show="aba === 'autores'" x-cloak class="mt-3 p-4 bg-base-100 border border-base-300 rounded-2xl shadow-sm space-y-3">
+                        <div class="flex items-center justify-center gap-4 text-xs pb-2 border-b border-base-200">
+                            <span class="font-bold text-base-content/70">Ordem dos Autores:</span>
+                            <label class="label cursor-pointer gap-1.5 p-0">
+                                <input type="radio" name="ordenar" value="autor_nome_asc" {{ request('ordenar') === 'autor_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">A a Z</span>
+                            </label>
+                            <label class="label cursor-pointer gap-1.5 p-0">
+                                <input type="radio" name="ordenar" value="autor_nome_desc" {{ request('ordenar') === 'autor_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">Z a A</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-base-200/40 rounded-xl">
+                            @foreach($autores as $autor)
+                                <label class="label cursor-pointer justify-start gap-2 p-1.5 hover:bg-base-100 rounded-md transition-colors">
+                                    <input type="checkbox" name="autores[]" value="{{ $autor->id }}" {{ in_array($autor->id, request('autores', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                    <span class="label-text text-xs truncate">{{ $autor->nome }}</span>
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
+
+                    <div x-show="aba === 'editoras'" x-cloak class="mt-3 p-4 bg-base-100 border border-base-300 rounded-2xl shadow-sm space-y-3">
+                        <div class="flex items-center justify-center gap-4 text-xs pb-2 border-b border-base-200">
+                            <span class="font-bold text-base-content/70">Ordem das Editoras:</span>
+                            <label class="label cursor-pointer gap-1.5 p-0">
+                                <input type="radio" name="ordenar" value="editora_nome_asc" {{ request('ordenar') === 'editora_nome_asc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">A a Z</span>
+                            </label>
+                            <label class="label cursor-pointer gap-1.5 p-0">
+                                <input type="radio" name="ordenar" value="editora_nome_desc" {{ request('ordenar') === 'editora_nome_desc' ? 'checked' : '' }} class="radio radio-primary radio-xs" />
+                                <span class="label-text text-xs">Z a A</span>
+                            </label>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 max-h-48 overflow-y-auto p-2 bg-base-200/40 rounded-xl">
+                            @foreach($editoras as $editora)
+                                <label class="label cursor-pointer justify-start gap-2 p-1.5 hover:bg-base-100 rounded-md transition-colors">
+                                    <input type="checkbox" name="editoras[]" value="{{ $editora->id }}" {{ in_array($editora->id, request('editoras', [])) ? 'checked' : '' }} class="checkbox checkbox-primary checkbox-xs" />
+                                    <span class="label-text text-xs truncate">{{ $editora->nome }}</span>
+                                </label>
+                            @endforeach
+                        </div>
                     </div>
                 </form>
             </section>

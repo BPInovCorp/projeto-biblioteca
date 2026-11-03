@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Autor;
 use App\Models\Editora;
 use App\Models\Livro;
+use App\Services\AuditoriaService;
 use App\Services\GoogleBooksService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Collection;
@@ -18,6 +19,13 @@ use Throwable;
 
 class GoogleBooksController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function index(): View
     {
         return view('livros.import', [
@@ -165,6 +173,13 @@ class GoogleBooksController extends Controller
                 $livro->autores()->sync($autoresIds);
             }
 
+            $this->auditoriaService->registar(
+                'Livros',
+                $livro->id,
+                "Importou o livro '{$livro->nome}' da Google Books",
+                request()->user()
+            );
+
             return redirect()->route('livros.index')->with('success', __('Livro ":nome" importado com sucesso para o acervo da biblioteca.', ['nome' => $livro->nome]));
         });
     }
@@ -254,6 +269,13 @@ class GoogleBooksController extends Controller
             }
 
             $livro->save();
+
+            $this->auditoriaService->registar(
+                'livros',
+                $livro->id,
+                "sincronizou metadados do livro '{$livro->nome}' com a google books",
+                request()->user()
+            );
         });
 
         return redirect()->back()->with('success', __('Metadados do livro ":nome" sincronizados com sucesso a partir da Google Books.', ['nome' => $livro->nome]));

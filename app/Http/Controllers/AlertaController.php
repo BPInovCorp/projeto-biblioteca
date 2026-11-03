@@ -4,12 +4,20 @@ namespace App\Http\Controllers;
 
 use App\Models\Alerta;
 use App\Models\Livro;
+use App\Services\AuditoriaService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Throwable;
 
 class AlertaController extends Controller
 {
+    protected AuditoriaService $auditoriaService;
+
+    public function __construct(AuditoriaService $auditoriaService)
+    {
+        $this->auditoriaService = $auditoriaService;
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $validated = $request->validate([
@@ -36,6 +44,13 @@ class AlertaController extends Controller
                 'notificado_at' => null,
             ]);
 
+            $this->auditoriaService->registar(
+                'alertas',
+                $livro->id,
+                "reativou alerta de disponibilidade para o livro '{$livro->nome}'",
+                $user
+            );
+
             return redirect()->back()->with('status', __('Subscreveu com sucesso o alerta de disponibilidade para esta obra.'));
         }
 
@@ -45,6 +60,13 @@ class AlertaController extends Controller
                 'livro_id' => $livro->id,
                 'notificado_at' => null,
             ]);
+
+            $this->auditoriaService->registar(
+                'Alertas',
+                $livro->id,
+                "Subscreveu alerta de disponibilidade para o livro '{$livro->nome}'",
+                $user
+            );
         } catch (Throwable) {
             return redirect()->back()->with('error', __('Já tem um alerta ativo para este livro.'));
         }

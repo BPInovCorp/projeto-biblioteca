@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CarrinhoItem;
 use App\Models\Livro;
+use App\Services\AuditoriaService;
 use App\Services\CarrinhoService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -13,9 +14,16 @@ use InvalidArgumentException;
 
 class CarrinhoController extends Controller
 {
+    protected CarrinhoService $carrinhoService;
+    protected AuditoriaService $auditoriaService;
+
     public function __construct(
-        protected CarrinhoService $carrinhoService
-    ) {}
+        CarrinhoService $carrinhoService,
+        AuditoriaService $auditoriaService
+    ) {
+        $this->carrinhoService = $carrinhoService;
+        $this->auditoriaService = $auditoriaService;
+    }
 
     public function index(Request $request): View
     {
@@ -47,6 +55,13 @@ class CarrinhoController extends Controller
 
             return back()->withErrors(['carrinho' => $e->getMessage()]);
         }
+
+        $this->auditoriaService->registar(
+            'Carrinho',
+            $livro->id,
+            "Adicionou {$quantidade} exemplar(es) do livro '{$livro->nome}' ao carrinho",
+            $request->user()
+        );
 
         $totalItens = $this->carrinhoService->contarItens($request->user());
 
@@ -85,6 +100,16 @@ class CarrinhoController extends Controller
             return back()->withErrors(['carrinho' => $e->getMessage()]);
         }
 
+        $item->load('livro');
+        $nomeLivro = optional($item->livro)->nome ?? 'Livro #' . $item->livro_id;
+
+        $this->auditoriaService->registar(
+            'Carrinho',
+            $item->id,
+            "Alterou a quantidade do livro '{$nomeLivro}' no carrinho para {$dados['quantidade']}",
+            $request->user()
+        );
+
         $totalCentimos = $this->carrinhoService->calcularTotalCentimos($request->user());
         $totalItens = $this->carrinhoService->contarItens($request->user());
 
@@ -105,7 +130,17 @@ class CarrinhoController extends Controller
     {
         abort_if($item->user_id !== $request->user()->id, 403);
 
+        $item->load('livro');
+        $nomeLivro = optional($item->livro)->nome ?? 'Livro #' . $item->livro_id;
+
         $this->carrinhoService->removerItem($request->user(), $item->id);
+
+        $this->auditoriaService->registar(
+            'Carrinho',
+            $item->id,
+            "Removeu o livro '{$nomeLivro}' do carrinho",
+            $request->user()
+        );
 
         $totalCentimos = $this->carrinhoService->calcularTotalCentimos($request->user());
         $totalItens = $this->carrinhoService->contarItens($request->user());
@@ -125,6 +160,13 @@ class CarrinhoController extends Controller
     public function limpar(Request $request): JsonResponse|RedirectResponse
     {
         $this->carrinhoService->limpar($request->user());
+
+        $this->auditoriaService->registar(
+            'Carrinho',
+            null,
+            'Esvaziou todos os artigos do carrinho de compras',
+            $request->user()
+        );
 
         if ($request->expectsJson()) {
             return response()->json([

@@ -193,3 +193,21 @@ test('nao e possivel requisitar livro sem stock disponivel', function () {
     $this->assertDatabaseCount('requisicoes', 1);
     expect(Requisicao::where('user_id', $cidadao2->id)->count())->toBe(0);
 });
+test('cidadao nao pode confirmar a devolucao diretamente', function () {
+    $cidadao = User::factory()->create(['role' => 'cidadao']);
+    $livro = criarLivroParaPest('Os Maias');
+
+    $requisicao = Requisicao::create([
+        'numero_sequencial' => 1,
+        'user_id' => $cidadao->id,
+        'livro_id' => $livro->id,
+        'foto_cidadao' => $cidadao->profile_photo_url,
+        'data_requisicao' => now()->toDateString(),
+        'data_fim_prevista' => now()->addDays(5)->toDateString(),
+        'status' => 'ativa',
+    ]);
+
+    $this->actingAs($cidadao)->post(route('requisicoes.devolver', $requisicao))->assertForbidden();
+
+    expect($requisicao->refresh()->status)->toBe('ativa');
+});
